@@ -50,7 +50,7 @@ export default function App() {
   const defaultInitialCaption: TranscriptSentence = {
     id: 'init-1',
     time: 'Live',
-    speaker: initialCourse ? initialCourse.instructor : 'Prof. CS & AI Lecture',
+    speaker: initialCourse ? initialCourse.instructor : 'Course Instructor',
     english: 'Click "Start Live Microphone" to translate the voice into Chinese live.',
     chinese: '点击“启动实时麦克风”，即可将课程语音实时同传为中文。',
     detectedTerms: matchCSTerms('Click "Start Live Microphone" to translate the voice into Chinese live.', []),

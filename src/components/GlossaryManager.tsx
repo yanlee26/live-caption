@@ -23,7 +23,7 @@ export default function GlossaryManager({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTerm, setNewTerm] = useState('');
   const [newChinese, setNewChinese] = useState('');
-  const [newCategory, setNewCategory] = useState<AcademicCategory>('Computer Science & AI');
+  const [newCategory, setNewCategory] = useState<AcademicCategory>('General Academic');
   const [newDefinition, setNewDefinition] = useState('');
   const [newCodeExample, setNewCodeExample] = useState('');
 
@@ -72,7 +72,7 @@ export default function GlossaryManager({
               <BookOpen size={20} color="#38bdf8" /> Academic Course Term Dictionary
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Universal Academic Vocabulary + Custom Term protection for Science, Engineering, Business, Medicine & CS courses
+              Universal Academic Vocabulary + Custom Term protection for Science, Engineering, Business, Medicine, Law & Arts courses
             </p>
           </div>
 

@@ -31,7 +31,7 @@ const OFFLINE_DICTIONARY: Record<string, string> = {
 };
 
 /**
- * Match CS terms from text against all known glossaries (default + custom)
+ * Match academic terms from text against all known glossaries (default + custom)
  */
 export function matchCSTerms(text: string, customGlossary: CSTerm[] = []): CSTerm[] {
   if (!text) return [];
@@ -53,7 +53,7 @@ export function matchCSTerms(text: string, customGlossary: CSTerm[] = []): CSTer
 }
 
 /**
- * Post-process Chinese translation to protect CS technical terms in English
+ * Post-process Chinese translation to protect academic technical terms in English
  */
 export function applyCSTermPreservation(chineseText: string, detectedTerms: CSTerm[]): string {
   if (!chineseText) return '';

@@ -22,7 +22,7 @@ export default function CourseSelectorModal({
   const [code, setCode] = useState('');
   const [title, setTitle] = useState('');
   const [instructor, setInstructor] = useState('');
-  const [category, setCategory] = useState<AcademicCategory>('Computer Science & AI');
+  const [category, setCategory] = useState<AcademicCategory>('General Academic');
   const [description, setDescription] = useState('');
 
   const handleCreateSubmit = (e: React.FormEvent) => {

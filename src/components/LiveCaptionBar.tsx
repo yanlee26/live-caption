@@ -58,7 +58,7 @@ export default function LiveCaptionBar({
                   key={`${term.id}-${idx}`}
                   onClick={() => onSelectTerm(term)}
                   className="term-badge"
-                  title="Click to view CS Term Definition & Code Example"
+                  title="Click to view Academic Term Definition"
                   style={{ margin: '0 4px', cursor: 'pointer' }}
                 >
                   <Sparkles size={12} /> {s}
@@ -241,7 +241,7 @@ export default function LiveCaptionBar({
             flexWrap: 'wrap'
           }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <BookOpen size={13} /> CS/AI Terms detected in this sentence:
+              <BookOpen size={13} /> Academic Terms detected in this sentence:
             </span>
             {currentCaption.detectedTerms.map(term => (
               <button

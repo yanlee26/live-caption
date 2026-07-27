@@ -1,49 +1,44 @@
 import { Course } from '../types';
 
 export const INITIAL_COURSES: Course[] = [
-  // {
-  //   id: "course-dl-580",
-  //   code: "CS 580",
-  //   title: "Deep Learning & Transformer Architectures",
-  //   instructor: "Prof. Geoffrey Hinton",
-  //   category: "Deep Learning",
-  //   description: "Covers Neural Networks, Self-Attention, Backpropagation, CNNs, and Mixture of Experts (MoE).",
-  //   createdDate: "2026-07-27"
-  // },
-  // {
-  //   id: "course-dist-612",
-  //   code: "CS 612",
-  //   title: "Distributed Calculation & High Performance Systems",
-  //   instructor: "Prof. Leslie Lamport",
-  //   category: "Distributed Calculation",
-  //   description: "Covers MapReduce, Raft Consensus, Spark RDD, CAP Theorem, and Consistent Hashing.",
-  //   createdDate: "2026-07-27"
-  // },
-  // {
-  //   id: "course-ml-440",
-  //   code: "CS 440",
-  //   title: "Machine Learning Foundations & Optimization",
-  //   instructor: "Prof. Andrew Ng",
-  //   category: "Machine Learning",
-  //   description: "Covers Gradient Descent, Loss Functions, Overfitting, Hyperparameter Tuning, and Regularization.",
-  //   createdDate: "2026-07-27"
-  // },
-  // {
-  //   id: "course-os-301",
-  //   code: "CS 301",
-  //   title: "Operating Systems & Concurrency",
-  //   instructor: "Prof. Alan Turing",
-  //   category: "Operating Systems",
-  //   description: "Covers Deadlock Conditions, Semaphores, Virtual Memory Paging, and Context Switching.",
-  //   createdDate: "2026-07-27"
-  // },
-  // {
-  //   id: "course-algo-202",
-  //   code: "CS 202",
-  //   title: "Data Structures & Dynamic Programming",
-  //   instructor: "Prof. Grace Hopper",
-  //   category: "Data Structures & Algorithms",
-  //   description: "Covers Big-O Complexity, Dynamic Programming, Memoization, B-Trees, and Graph Traversal.",
-  //   createdDate: "2026-07-27"
-  // }
+  {
+    id: "course-econ-101",
+    code: "ECON 101",
+    title: "Microeconomics & Market Analysis",
+    instructor: "Prof. Sarah Jenkins",
+    category: "Business & Economics",
+    description: "Supply and demand, market equilibrium, cost structures, consumer theory, and opportunity cost.",
+    createdDate: "2026-07-27",
+    isCustom: false
+  },
+  {
+    id: "course-biol-105",
+    code: "BIOL 105",
+    title: "General Biology & Molecular Genetics",
+    instructor: "Prof. Robert Vance",
+    category: "Medicine & Life Sciences",
+    description: "Cellular structures, DNA replication, gene expression, metabolism, and enzyme kinetics.",
+    createdDate: "2026-07-27",
+    isCustom: false
+  },
+  {
+    id: "course-math-201",
+    code: "MATH 201",
+    title: "Linear Algebra & Matrix Methods",
+    instructor: "Prof. Elena Rostova",
+    category: "Science & Mathematics",
+    description: "Vector spaces, matrix factorizations, eigenvalues, eigenvectors, and linear transformations.",
+    createdDate: "2026-07-27",
+    isCustom: false
+  },
+  {
+    id: "course-cs-101",
+    code: "CS 101",
+    title: "Intro to Computer Science & Algorithms",
+    instructor: "Prof. Alan Turing",
+    category: "Computer Science & AI",
+    description: "Algorithm design, data structures, recursion, complexity analysis, and problem solving.",
+    createdDate: "2026-07-27",
+    isCustom: false
+  }
 ];
