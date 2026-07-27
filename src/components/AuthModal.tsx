@@ -64,7 +64,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                 Google Account Login
               </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Sign in with your Google or Student Gmail account
+                {isAuthenticated ? 'Active User Profile & Account Settings' : 'Sign in with your Google or Student Gmail account'}
               </p>
             </div>
           </div>
@@ -74,9 +74,9 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           </button>
         </div>
 
-        {/* Active Google Account Details */}
+        {/* Active Google Account Details (Shown ONLY when logged in) */}
         {isAuthenticated && user ? (
-          <div className="glass-card" style={{ padding: '20px', marginBottom: '20px', borderColor: 'rgba(66, 133, 244, 0.4)', background: 'rgba(66, 133, 244, 0.08)' }}>
+          <div className="glass-card" style={{ padding: '20px', borderColor: 'rgba(66, 133, 244, 0.4)', background: 'rgba(66, 133, 244, 0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
               <img
                 src={user.picture}
@@ -107,60 +107,57 @@ export default function AuthModal({ onClose }: AuthModalProps) {
               <LogOut size={16} /> Disconnect Google Account
             </button>
           </div>
-        ) : null}
-
-        {/* Official Google OAuth Sign In (only if valid client ID configured) */}
-        {hasValidGoogleClientId ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-              <GoogleLogin
-                onSuccess={(credentialResponse) => {
-                  if (credentialResponse.credential) {
-                    loginWithGoogleCredential(credentialResponse.credential);
-                    onClose();
-                  }
-                }}
-                onError={() => {
-                  console.warn('Google OAuth login error');
-                }}
-                useOneTap
-                theme="filled_blue"
-                shape="pill"
-                size="large"
-                text="continue_with"
-              />
-            </div>
-          </div>
         ) : (
-          /* Direct Google Account Login Options (Safe from 401 invalid_client) */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            
-            <button
-              onClick={() => {
-                loginWithGoogleAccount('arivera.student@gmail.com', 'Alex Rivera (Google)');
-                onClose();
-              }}
-              className="glass-card"
-              style={{
-                width: '100%',
-                padding: '12px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                color: 'var(--text-primary)',
-                borderColor: 'rgba(66, 133, 244, 0.4)',
-                background: 'rgba(66, 133, 244, 0.12)'
-              }}
-            >
-              <ShieldCheck size={20} color="#4285F4" />
-              Sign in with Google Account
-            </button>
-
-          </div>
+          /* Sign-In Options (Shown ONLY when NOT logged in) */
+          hasValidGoogleClientId ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <GoogleLogin
+                  onSuccess={(credentialResponse) => {
+                    if (credentialResponse.credential) {
+                      loginWithGoogleCredential(credentialResponse.credential);
+                      onClose();
+                    }
+                  }}
+                  onError={() => {
+                    console.warn('Google OAuth login error');
+                  }}
+                  useOneTap
+                  theme="filled_blue"
+                  shape="pill"
+                  size="large"
+                  text="continue_with"
+                />
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                onClick={() => {
+                  loginWithGoogleAccount('arivera.student@gmail.com', 'Alex Rivera (Google)');
+                  onClose();
+                }}
+                className="glass-card"
+                style={{
+                  width: '100%',
+                  padding: '12px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  color: 'var(--text-primary)',
+                  borderColor: 'rgba(66, 133, 244, 0.4)',
+                  background: 'rgba(66, 133, 244, 0.12)'
+                }}
+              >
+                <ShieldCheck size={20} color="#4285F4" />
+                Sign in with Google Account
+              </button>
+            </div>
+          )
         )}
 
       </div>
