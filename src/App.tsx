@@ -119,6 +119,31 @@ export default function App() {
     saveAppSettings({ fontSize, layoutOrder, theme, speechLang }, user?.id);
   }, [fontSize, layoutOrder, theme, speechLang, user?.id]);
 
+  // Update current caption and initial sentence when activeCourse changes
+  useEffect(() => {
+    if (!activeCourse) return;
+    const courseTranscripts = transcriptHistory.filter(t => t.courseId === activeCourse.id);
+    if (courseTranscripts.length > 0) {
+      setCurrentCaption(courseTranscripts[courseTranscripts.length - 1]);
+    } else {
+      const defaultCourseCaption: TranscriptSentence = {
+        id: `init-${activeCourse.id}`,
+        time: 'Live',
+        speaker: activeCourse.instructor || 'Course Instructor',
+        english: `Selected ${activeCourse.code}: ${activeCourse.title}. Click "Start Live Microphone" to begin captioning.`,
+        chinese: `已选择 ${activeCourse.code} (${activeCourse.title}) 课程，点击“启动实时麦克风”即可开始同传。`,
+        detectedTerms: matchCSTerms(`Selected ${activeCourse.code}: ${activeCourse.title}`, customGlossary),
+        bookmarked: false,
+        courseId: activeCourse.id,
+        userId: user?.id
+      };
+      setCurrentCaption(defaultCourseCaption);
+    }
+  }, [activeCourse?.id]);
+
+  // Filter transcript history by currently active course
+  const activeCourseHistory = transcriptHistory.filter(t => !t.courseId || t.courseId === activeCourse?.id);
+
   // Load cloud data from Supabase when authenticated
   useEffect(() => {
     if (!user?.id) return;
@@ -456,12 +481,12 @@ export default function App() {
                     Recent Captions for {activeCourse ? activeCourse.code : 'Current Lecture'}
                   </h3>
                   <button onClick={() => setCurrentView('transcript')} className="btn-secondary" style={{ padding: '4px 12px', fontSize: '0.78rem' }}>
-                    View Full Transcript Stream ({transcriptHistory.length}) →
+                    View Full Transcript Stream ({activeCourseHistory.length}) →
                   </button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {transcriptHistory.slice(-4).reverse().map((item, idx) => (
+                  {activeCourseHistory.slice(-4).reverse().map((item, idx) => (
                     <div key={item.id || idx} style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', borderLeft: '3px solid #38bdf8' }}>
                       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block' }}>
                         {item.english}
@@ -480,10 +505,10 @@ export default function App() {
         {/* View 2: Full Transcript Stream */}
         {currentView === 'transcript' && (
           <TranscriptView
-            transcriptHistory={transcriptHistory}
+            transcriptHistory={activeCourseHistory}
             onSelectTerm={(term) => setSelectedTermForModal(term)}
             onToggleBookmark={handleToggleBookmark}
-            onClearHistory={() => setTranscriptHistory([])}
+            onClearHistory={() => setTranscriptHistory(prev => prev.filter(t => t.courseId && t.courseId !== activeCourse?.id))}
           />
         )}
 
