@@ -35,7 +35,7 @@ export default function App() {
 
   const [theme, setTheme] = useState<'dark' | 'light'>(savedSettings.theme);
   const [currentView, setCurrentView] = useState<'subtitle' | 'transcript' | 'glossary'>('subtitle');
-  
+
   // Courses State
   const [courses, setCourses] = useState<Course[]>(savedCourses);
   const [activeCourse, setActiveCourse] = useState<Course | null>(initialCourse);
@@ -52,9 +52,9 @@ export default function App() {
     id: 'init-1',
     time: 'Live',
     speaker: initialCourse ? initialCourse.instructor : 'Prof. CS & AI Lecture',
-    english: 'Click "Start Live Microphone" to translate English ML, DL & CS voice into Chinese live.',
-    chinese: '点击“启动实时麦克风”，即可将英文 AI、深度学习与 CS 课程语音实时同传为中文。',
-    detectedTerms: matchCSTerms('Click "Start Live Microphone" to translate English ML, DL & CS voice into Chinese live.', []),
+    english: 'Click "Start Live Microphone" to translate the voice into Chinese live.',
+    chinese: '点击“启动实时麦克风”，即可将课程语音实时同传为中文。',
+    detectedTerms: matchCSTerms('Click "Start Live Microphone" to translate the voice into Chinese live.', []),
     bookmarked: false,
     courseId: initialCourse?.id,
     userId: user?.id
@@ -87,11 +87,11 @@ export default function App() {
   // Deduplication Helper: Appends caption object to transcriptHistory without duplicate lines
   const appendDeduplicatedTranscript = (list: TranscriptSentence[], newItem: TranscriptSentence): TranscriptSentence[] => {
     if (!newItem.english || !newItem.english.trim()) return list;
-    
+
     const trimmedNew = newItem.english.trim().toLowerCase();
-    
+
     // Check if any of the last 4 items in transcriptHistory has the exact same english text or ID
-    const isRecentDuplicate = list.slice(-4).some(item => 
+    const isRecentDuplicate = list.slice(-4).some(item =>
       item.id === newItem.id || item.english.trim().toLowerCase() === trimmedNew
     );
 
@@ -123,7 +123,7 @@ export default function App() {
   // Smart sentence segmentation helper
   const segmentSpeechText = (rawText: string): string[] => {
     if (!rawText) return [];
-    
+
     const punctuationChunks = rawText.split(/(?<=[.?!;\n])\s+/);
     const finalSegments: string[] = [];
 
@@ -282,7 +282,7 @@ export default function App() {
         if (isListeningRef.current && err.error !== 'not-allowed') {
           setTimeout(() => {
             if (isListeningRef.current && recognitionRef.current) {
-              try { recognitionRef.current.start(); } catch (e) {}
+              try { recognitionRef.current.start(); } catch (e) { }
             }
           }, 300);
         }
@@ -296,7 +296,7 @@ export default function App() {
             if (isListeningRef.current && recognitionRef.current) {
               try {
                 recognitionRef.current.start();
-              } catch (e) {}
+              } catch (e) { }
             }
           }, 150);
         }
@@ -340,7 +340,7 @@ export default function App() {
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -380,7 +380,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      
+
       {/* Top Navbar */}
       <Navbar
         currentView={currentView}
@@ -396,7 +396,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main style={{ flex: 1, paddingBottom: '32px' }}>
-        
+
         {/* Audio Control Toolbar */}
         <AudioControls
           user={user}
