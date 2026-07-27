@@ -224,9 +224,6 @@ export default function GlossaryManager({
                   </span>
                   {item.isCustom && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', fontWeight: 600 }}>
-                        Custom Term
-                      </span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

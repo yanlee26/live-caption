@@ -226,11 +226,6 @@ export default function CourseSelectorModal({
                     }}>
                       {course.code}
                     </span>
-                    {course.isCustom && (
-                      <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', fontWeight: 600 }}>
-                        Custom
-                      </span>
-                    )}
                   </div>
 
                   <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
