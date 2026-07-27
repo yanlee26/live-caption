@@ -12,8 +12,19 @@ An intelligent, real-time speech translation and bilingual captioning web applic
 - ⚡ **Web Speech Result Index Deduplication**: Eliminates duplicate caption entries using index tracking and recent-history deduplication guards.
 - 🔐 **Google OAuth 2.0 & Auth0 Authentication**: Sign in with your Google Account (`@gmail.com` or university email) to manage personal lecture transcripts and courses.
 - 📚 **Universal Academic Term Dictionary**: Cross-disciplinary dictionary covering Computer Science & AI, Science & Math, Business & Economics, Engineering, Medicine, and Humanities. Allows adding custom professor jargon.
-- 💾 **Browser `localStorage` Persistence**: Automatically persists enrolled courses, custom dictionaries, user UI preferences, and lecture transcripts across browser reloads.
+- 💾 **Hybrid Local & Supabase Persistence**: Automatically persists enrolled courses, custom dictionaries, UI preferences, and lecture transcripts locally and syncs to Supabase cloud.
 - 📥 **Lecture Notes Exporter**: One-click export of lecture transcripts, Chinese translations, and bookmarked sentences into Markdown or JSON format.
+
+---
+
+## 🗺️ Roadmap & TODO Features
+
+- [ ] 🤖 **AI Implementation & LLM Translation Parser**: Integrate Gemini / OpenAI models for context-aware, high-precision academic translation that adapts to professor accent and lecture style.
+- [ ] 💬 **AI Course Q&A Chatbot**: Interactive AI study assistant allowing students to ask clarifying questions directly against live lecture transcripts and course notes.
+- [ ] 🧠 **Automated AI Terminology Generator**: Auto-extract domain-specific key terms, formulas, and bilingual definitions from live lecture streams or uploaded slides/PDFs.
+- [ ] 📝 **AI Lecture Summaries & Flashcards**: One-click generation of weekly executive summaries, key takeaways, and interactive review flashcards for exam preparation.
+- [ ] 📄 **Syllabus PDF Parser**: Automatically parse course syllabus documents to populate weekly course dates, topics, and assignment deadlines.
+- [ ] 🎙️ **Multi-Speaker Diarization**: Advanced audio speaker identification to distinguish between professors, guest lecturers, and student Q&A interactions.
 
 ---
 
