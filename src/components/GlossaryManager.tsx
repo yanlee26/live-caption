@@ -62,7 +62,7 @@ export default function GlossaryManager({
   };
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 16px' }}>
+    <div style={{ maxWidth: '1400px', margin: '24px auto 0 auto', padding: '0 16px' }}>
       <div className="glass-panel" style={{ padding: '24px' }}>
         
         {/* Header */}

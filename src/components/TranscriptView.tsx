@@ -60,7 +60,7 @@ export default function TranscriptView({
   const paginatedHistory = filteredHistory.slice(startIndex, endIndex);
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 16px' }}>
+    <div style={{ maxWidth: '1400px', margin: '24px auto 0 auto', padding: '0 16px' }}>
       <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 220px)', minHeight: '550px' }}>
         
         {/* Header Bar */}
