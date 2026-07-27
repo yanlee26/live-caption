@@ -155,7 +155,7 @@ export default function App() {
       return itemWeek === selectedWeekFilter;
     });
 
-  // Load cloud data from Supabase when authenticated
+  // Load cloud data from Supabase and merge with local data when authenticated
   useEffect(() => {
     if (!user?.id) return;
     let isMounted = true;
@@ -167,9 +167,56 @@ export default function App() {
         fetchSettingsFromSupabase(user.id)
       ]);
       if (!isMounted) return;
-      if (remoteCourses && remoteCourses.length > 0) setCourses(remoteCourses);
-      if (remoteTranscripts && remoteTranscripts.length > 0) setTranscriptHistory(remoteTranscripts);
-      if (remoteGlossary && remoteGlossary.length > 0) setCustomGlossary(remoteGlossary);
+
+      // Merge courses (remote + local)
+      if (remoteCourses) {
+        setCourses(prevLocal => {
+          const map = new Map<string, Course>();
+          remoteCourses.forEach(c => map.set(c.id, c));
+          prevLocal.forEach(c => {
+            if (!map.has(c.id)) map.set(c.id, c);
+          });
+          const merged = Array.from(map.values());
+          saveCourses(merged, user.id);
+          return merged;
+        });
+      } else {
+        // Upload local courses to Supabase if first time
+        saveCourses(courses, user.id);
+      }
+
+      // Merge transcripts (remote + local)
+      if (remoteTranscripts) {
+        setTranscriptHistory(prevLocal => {
+          const map = new Map<string, TranscriptSentence>();
+          remoteTranscripts.forEach(t => map.set(t.id, t));
+          prevLocal.forEach(t => {
+            if (!map.has(t.id)) map.set(t.id, t);
+          });
+          const merged = Array.from(map.values());
+          saveTranscripts(merged, user.id);
+          return merged;
+        });
+      } else {
+        saveTranscripts(transcriptHistory, user.id);
+      }
+
+      // Merge custom glossary (remote + local)
+      if (remoteGlossary) {
+        setCustomGlossary(prevLocal => {
+          const map = new Map<string, CSTerm>();
+          remoteGlossary.forEach(g => map.set(g.id, g));
+          prevLocal.forEach(g => {
+            if (!map.has(g.id)) map.set(g.id, g);
+          });
+          const merged = Array.from(map.values());
+          saveCustomGlossary(merged, user.id);
+          return merged;
+        });
+      } else {
+        saveCustomGlossary(customGlossary, user.id);
+      }
+
       if (remoteSettings) {
         setFontSize(remoteSettings.fontSize);
         setLayoutOrder(remoteSettings.layoutOrder);
