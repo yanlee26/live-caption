@@ -75,6 +75,7 @@ export async function fetchCoursesFromSupabase(userId: string): Promise<Course[]
       code: item.code,
       title: item.title,
       instructor: item.instructor || '',
+      startDate: item.start_date || '2026-07-13',
       category: item.category || 'General Academic',
       description: item.description || '',
       isCustom: item.is_custom !== false,
@@ -94,6 +95,7 @@ export async function syncCoursesToSupabase(courses: Course[], userId: string) {
       code: c.code,
       title: c.title,
       instructor: c.instructor || '',
+      start_date: c.startDate || '2026-07-13',
       category: c.category || 'General Academic',
       description: c.description || '',
       is_custom: c.isCustom !== false

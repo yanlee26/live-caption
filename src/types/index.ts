@@ -41,6 +41,7 @@ export interface Course {
   code: string;
   title: string;
   instructor: string;
+  startDate?: string;
   category?: AcademicCategory;
   description?: string;
   createdDate?: string;

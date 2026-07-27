@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, BookOpen, Plus, Check, Sparkles, GraduationCap, ArrowRight } from 'lucide-react';
+import { X, BookOpen, Plus, Check, Sparkles, GraduationCap, ArrowRight, Calendar } from 'lucide-react';
 import { Course, AcademicCategory } from '../types';
 import { ACADEMIC_CATEGORIES } from '../data/csGlossary';
+import { calculateWeekNumber, DEFAULT_COURSE_START_DATE } from '../utils/dateUtils';
 
 interface CourseSelectorModalProps {
   courses: Course[];
@@ -22,7 +23,7 @@ export default function CourseSelectorModal({
   const [code, setCode] = useState('');
   const [title, setTitle] = useState('');
   const [instructor, setInstructor] = useState('');
-  const [category, setCategory] = useState<AcademicCategory>('General Academic');
+  const [startDate, setStartDate] = useState<string>(DEFAULT_COURSE_START_DATE);
   const [description, setDescription] = useState('');
 
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -34,7 +35,7 @@ export default function CourseSelectorModal({
       code: code.trim().toUpperCase(),
       title: title.trim(),
       instructor: instructor.trim() || 'Guest Lecturer',
-      category: category,
+      startDate: startDate || DEFAULT_COURSE_START_DATE,
       description: description.trim() || 'Custom course created by student.',
       createdDate: new Date().toISOString().split('T')[0],
       isCustom: true
@@ -46,6 +47,7 @@ export default function CourseSelectorModal({
     setCode('');
     setTitle('');
     setInstructor('');
+    setStartDate(DEFAULT_COURSE_START_DATE);
     setDescription('');
     setShowCreateForm(false);
   };
@@ -139,16 +141,29 @@ export default function CourseSelectorModal({
               </div>
             </div>
 
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Instructor</label>
-              <input
-                type="text"
-                placeholder="e.g. Prof. Geoffrey Hinton, Dr. Sarah Smith"
-                value={instructor}
-                onChange={(e) => setInstructor(e.target.value)}
-                className="glass-card"
-                style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Instructor</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Prof. Geoffrey Hinton, Dr. Sarah Smith"
+                  value={instructor}
+                  onChange={(e) => setInstructor(e.target.value)}
+                  className="glass-card"
+                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Course Start Date (Default: July 13 2026)</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="glass-card"
+                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
@@ -225,6 +240,19 @@ export default function CourseSelectorModal({
                       fontFamily: 'var(--font-mono)'
                     }}>
                       {course.code}
+                    </span>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      color: '#38bdf8',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <Calendar size={12} /> {calculateWeekNumber(course.startDate)}
                     </span>
                   </div>
 

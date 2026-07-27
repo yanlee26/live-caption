@@ -1,4 +1,4 @@
-import React from 'react';
+import { calculateWeekNumber } from '../utils/dateUtils';
 import { Mic, BookOpen, MessageSquareText, Settings, Download, Volume2, Sun, Moon, GraduationCap, ChevronDown, User } from 'lucide-react';
 import { Course } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -55,8 +55,20 @@ export default function Navbar({
               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', lineHeight: 1 }}>
                 Selected Course
               </span>
-              <strong style={{ fontSize: '0.85rem', color: activeCourse ? '#38bdf8' : 'var(--text-primary)' }}>
+              <strong style={{ fontSize: '0.85rem', color: activeCourse ? '#38bdf8' : 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 {activeCourse ? `${activeCourse.code}: ${activeCourse.title}` : 'Choose Course...'}
+                {activeCourse && (
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(56, 189, 248, 0.2)',
+                    color: '#38bdf8'
+                  }}>
+                    {calculateWeekNumber(activeCourse.startDate)}
+                  </span>
+                )}
               </strong>
             </div>
             <ChevronDown size={14} color="var(--text-muted)" />

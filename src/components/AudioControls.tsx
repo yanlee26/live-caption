@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { calculateWeekNumber } from '../utils/dateUtils';
 import { Mic, MicOff, ShieldCheck, Activity, GraduationCap, User } from 'lucide-react';
 import { Course, UserProfile } from '../types';
 
@@ -120,8 +120,20 @@ export default function AudioControls({
                 backgroundColor: isListening ? '#10b981' : (user ? (activeCourse ? '#38bdf8' : '#f59e0b') : '#ef4444'),
                 boxShadow: isListening ? '0 0 10px #10b981' : 'none'
               }} />
-              <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+              <span style={{ fontWeight: 600, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                 {!user ? 'Visitor Mode (Not Signed In)' : (activeCourse ? `${activeCourse.code}: ${activeCourse.title}` : 'No Course Selected')}
+                {user && activeCourse && (
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    background: 'rgba(56, 189, 248, 0.18)',
+                    color: '#38bdf8'
+                  }}>
+                    {calculateWeekNumber(activeCourse.startDate)}
+                  </span>
+                )}
               </span>
             </div>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
