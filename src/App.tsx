@@ -10,15 +10,14 @@ import SettingsModal from './components/SettingsModal';
 import CourseSelectorModal from './components/CourseSelectorModal';
 import AuthModal from './components/AuthModal';
 
-import { INITIAL_COURSES } from './data/courses';
 import { translateWithTermPreservation, fetchOnlineTranslation, matchCSTerms } from './utils/translationEngine';
 import { CSTerm, TranscriptSentence, Course } from './types';
 import {
-  loadSavedCourses, saveCourses,
+  loadSavedCourses, saveCourses, fetchCoursesFromSupabase,
   loadActiveCourseId, saveActiveCourseId,
-  loadSavedTranscripts, saveTranscripts,
-  loadCustomGlossary, saveCustomGlossary,
-  loadAppSettings, saveAppSettings
+  loadSavedTranscripts, saveTranscripts, fetchTranscriptsFromSupabase,
+  loadCustomGlossary, saveCustomGlossary, fetchGlossaryFromSupabase,
+  loadAppSettings, saveAppSettings, fetchSettingsFromSupabase
 } from './utils/storage';
 import { useAuth } from './context/AuthContext';
 
@@ -111,14 +110,39 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Sync state changes to localStorage
-  useEffect(() => { saveCourses(courses); }, [courses]);
+  // Sync state changes to localStorage & Supabase
+  useEffect(() => { saveCourses(courses, user?.id); }, [courses, user?.id]);
   useEffect(() => { if (activeCourse) saveActiveCourseId(activeCourse.id); }, [activeCourse]);
-  useEffect(() => { saveTranscripts(transcriptHistory); }, [transcriptHistory]);
-  useEffect(() => { saveCustomGlossary(customGlossary); }, [customGlossary]);
+  useEffect(() => { saveTranscripts(transcriptHistory, user?.id); }, [transcriptHistory, user?.id]);
+  useEffect(() => { saveCustomGlossary(customGlossary, user?.id); }, [customGlossary, user?.id]);
   useEffect(() => {
-    saveAppSettings({ fontSize, layoutOrder, theme, speechLang });
-  }, [fontSize, layoutOrder, theme, speechLang]);
+    saveAppSettings({ fontSize, layoutOrder, theme, speechLang }, user?.id);
+  }, [fontSize, layoutOrder, theme, speechLang, user?.id]);
+
+  // Load cloud data from Supabase when authenticated
+  useEffect(() => {
+    if (!user?.id) return;
+    let isMounted = true;
+    (async () => {
+      const [remoteCourses, remoteTranscripts, remoteGlossary, remoteSettings] = await Promise.all([
+        fetchCoursesFromSupabase(user.id),
+        fetchTranscriptsFromSupabase(user.id),
+        fetchGlossaryFromSupabase(user.id),
+        fetchSettingsFromSupabase(user.id)
+      ]);
+      if (!isMounted) return;
+      if (remoteCourses && remoteCourses.length > 0) setCourses(remoteCourses);
+      if (remoteTranscripts && remoteTranscripts.length > 0) setTranscriptHistory(remoteTranscripts);
+      if (remoteGlossary && remoteGlossary.length > 0) setCustomGlossary(remoteGlossary);
+      if (remoteSettings) {
+        setFontSize(remoteSettings.fontSize);
+        setLayoutOrder(remoteSettings.layoutOrder);
+        setTheme(remoteSettings.theme);
+        setSpeechLang(remoteSettings.speechLang);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [user?.id]);
 
   // Smart sentence segmentation helper
   const segmentSpeechText = (rawText: string): string[] => {
