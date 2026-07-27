@@ -14,9 +14,7 @@ interface AuthContextType {
 
 const GOOGLE_USER_KEY = 'live_caption_google_user';
 
-// Production Google OAuth 2.0 Client ID fallback
-const DEFAULT_CLIENT_ID = '223989835923-2k6o1g744aubi6a6142tt5gvb4igps88.apps.googleusercontent.com';
-const ENV_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_CLIENT_ID;
+const ENV_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 const hasValidClientId = !!(ENV_GOOGLE_CLIENT_ID && !ENV_GOOGLE_CLIENT_ID.includes('demo') && ENV_GOOGLE_CLIENT_ID.endsWith('.apps.googleusercontent.com'));
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
