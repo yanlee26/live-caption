@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, LogOut, ShieldCheck, Mail, Key, HelpCircle, Check } from 'lucide-react';
+import React from 'react';
+import { X, LogOut, ShieldCheck } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,20 +14,8 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     loginWithGoogleCredential,
     loginWithGoogleAccount,
     logout,
-    hasValidGoogleClientId,
-    googleClientId
+    hasValidGoogleClientId
   } = useAuth();
-
-  const [emailInput, setEmailInput] = useState('');
-  const [nameInput, setNameInput] = useState('');
-  const [showConfigGuide, setShowConfigGuide] = useState(false);
-
-  const handleCustomGoogleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!emailInput.trim()) return;
-    loginWithGoogleAccount(emailInput, nameInput);
-    onClose();
-  };
 
   return (
     <div style={{
@@ -43,7 +31,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     }}>
       <div className="glass-panel animate-float-up" style={{
         width: '100%',
-        maxWidth: '500px',
+        maxWidth: '480px',
         padding: '32px',
         borderRadius: '28px',
         background: 'var(--bg-main)',
@@ -123,7 +111,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
 
         {/* Official Google OAuth Sign In (only if valid client ID configured) */}
         {hasValidGoogleClientId ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
             <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
               <GoogleLogin
                 onSuccess={(credentialResponse) => {
@@ -145,7 +133,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           </div>
         ) : (
           /* Direct Google Account Login Options (Safe from 401 invalid_client) */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             
             <button
               onClick={() => {
@@ -169,53 +157,11 @@ export default function AuthModal({ onClose }: AuthModalProps) {
               }}
             >
               <ShieldCheck size={20} color="#4285F4" />
-              Sign in with Google Account (Instant)
+              Sign in with Google Account
             </button>
 
           </div>
         )}
-
-        {/* Custom Student Gmail Sign In Form */}
-        <form onSubmit={handleCustomGoogleSubmit} style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '16px', marginBottom: '16px' }}>
-          <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
-            Enter your Google / Gmail address:
-          </label>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-            <input
-              type="email"
-              placeholder="yourname@gmail.com"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              className="glass-card"
-              style={{ flex: 1, padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
-              required
-            />
-            <button type="submit" className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
-              Sign In
-            </button>
-          </div>
-        </form>
-
-        {/* Google Cloud Console Setup Helper */}
-        <div style={{ textAlign: 'center' }}>
-          <button
-            onClick={() => setShowConfigGuide(!showConfigGuide)}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-          >
-            <HelpCircle size={14} /> {showConfigGuide ? 'Hide Developer OAuth Info' : 'How to set up VITE_GOOGLE_CLIENT_ID for production?'}
-          </button>
-
-          {showConfigGuide && (
-            <div className="glass-card" style={{ marginTop: '10px', padding: '12px', textAlign: 'left', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              <p style={{ fontWeight: 600, color: '#38bdf8', marginBottom: '4px' }}>Google Cloud Console OAuth Setup Guide:</p>
-              <ol style={{ paddingLeft: '16px', lineHeight: 1.5 }}>
-                <li>Go to <strong>console.cloud.google.com</strong> & create OAuth 2.0 Client ID.</li>
-                <li>Add <code>http://localhost:5173</code> to Authorized JavaScript Origins.</li>
-                <li>Create a <code>.env</code> file in root and set:<br/><code>VITE_GOOGLE_CLIENT_ID=your_id.apps.googleusercontent.com</code></li>
-              </ol>
-            </div>
-          )}
-        </div>
 
       </div>
     </div>
