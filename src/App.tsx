@@ -12,6 +12,8 @@ import CourseSelectorModal from './components/CourseSelectorModal';
 import AuthModal from './components/AuthModal';
 
 import { translateWithTermPreservation, fetchOnlineTranslation, matchCSTerms } from './utils/translationEngine';
+import { calculateWeekNumber } from './utils/dateUtils';
+import { Calendar } from 'lucide-react';
 import { CSTerm, TranscriptSentence, Course } from './types';
 import {
   loadSavedCourses, saveCourses, fetchCoursesFromSupabase,
@@ -142,8 +144,16 @@ export default function App() {
     }
   }, [activeCourse?.id]);
 
-  // Filter transcript history by currently active course
-  const activeCourseHistory = transcriptHistory.filter(t => !t.courseId || t.courseId === activeCourse?.id);
+  const [selectedWeekFilter, setSelectedWeekFilter] = useState<string>('all');
+
+  // Filter transcript history by currently active course & selected week filter
+  const activeCourseHistory = transcriptHistory
+    .filter(t => !t.courseId || t.courseId === activeCourse?.id)
+    .filter(t => {
+      if (selectedWeekFilter === 'all') return true;
+      const itemWeek = t.weekNumber || calculateWeekNumber(activeCourse?.startDate, t.date ? new Date(t.date) : new Date());
+      return itemWeek === selectedWeekFilter;
+    });
 
   // Load cloud data from Supabase when authenticated
   useEffect(() => {
@@ -220,10 +230,14 @@ export default function App() {
     // Completed segments are strictly previous chunks (excluding activeSegment)
     const completedSegments = segments.slice(0, -1);
 
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const currentWeek = calculateWeekNumber(activeCourse?.startDate, now);
+
     // Process previous completed segments if any
     completedSegments.forEach(seg => {
       if (seg.trim()) {
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const instantProcessed = translateWithTermPreservation(seg, customGlossary);
         const captionObj: TranscriptSentence = {
           id: `live-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -234,7 +248,9 @@ export default function App() {
           detectedTerms: instantProcessed.detectedTerms,
           bookmarked: false,
           courseId: activeCourse?.id,
-          userId: user?.id
+          userId: user?.id,
+          date: dateStr,
+          weekNumber: currentWeek
         };
 
         setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, captionObj));
@@ -252,7 +268,7 @@ export default function App() {
     // Process current active segment
     if (activeSegment.trim()) {
       latestSpeechTextRef.current = activeSegment.trim();
-      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const instantProcessed = translateWithTermPreservation(activeSegment, customGlossary);
 
       const activeCaptionObj: TranscriptSentence = {
@@ -264,7 +280,9 @@ export default function App() {
         detectedTerms: instantProcessed.detectedTerms,
         bookmarked: false,
         courseId: activeCourse?.id,
-        userId: user?.id
+        userId: user?.id,
+        date: dateStr,
+        weekNumber: currentWeek
       };
 
       setCurrentCaption(activeCaptionObj);
@@ -479,10 +497,34 @@ export default function App() {
             {/* Quick Live Stream Summary underneath subtitle view */}
             <div style={{ maxWidth: '1200px', margin: '32px auto 0 auto', padding: '0 16px' }}>
               <div className="glass-card" style={{ padding: '20px 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, fontFamily: 'var(--font-heading)' }}>
-                    Recent Captions for {activeCourse ? activeCourse.code : 'Current Lecture'}
-                  </h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, fontFamily: 'var(--font-heading)' }}>
+                      Recent Captions for {activeCourse ? activeCourse.code : 'Current Lecture'}
+                    </h3>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Calendar size={14} color="#38bdf8" />
+                      <select
+                        value={selectedWeekFilter}
+                        onChange={(e) => setSelectedWeekFilter(e.target.value)}
+                        className="glass-card"
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '0.78rem',
+                          color: 'var(--text-primary)',
+                          outline: 'none',
+                          cursor: 'pointer',
+                          borderColor: selectedWeekFilter !== 'all' ? '#38bdf8' : 'var(--border-glass)'
+                        }}
+                      >
+                        <option value="all">All Weeks (1-50)</option>
+                        {Array.from({ length: 50 }, (_, i) => `Week ${i + 1}`).map(w => (
+                          <option key={w} value={w}>{w}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
                   <button onClick={() => setCurrentView('transcript')} className="btn-secondary" style={{ padding: '4px 12px', fontSize: '0.78rem' }}>
                     View Full Transcript Stream ({activeCourseHistory.length}) →
                   </button>
@@ -512,6 +554,8 @@ export default function App() {
             onSelectTerm={(term) => setSelectedTermForModal(term)}
             onToggleBookmark={handleToggleBookmark}
             onClearHistory={() => setTranscriptHistory(prev => prev.filter(t => t.courseId && t.courseId !== activeCourse?.id))}
+            selectedWeek={selectedWeekFilter}
+            onSelectWeek={setSelectedWeekFilter}
           />
         )}
 

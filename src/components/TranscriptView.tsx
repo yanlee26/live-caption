@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Star, Sparkles, Clock, ArrowDown, Filter, Trash2 } from 'lucide-react';
+import { Search, Star, Sparkles, Clock, ArrowDown, Filter, Trash2, Calendar } from 'lucide-react';
 import { CSTerm, TranscriptSentence } from '../types';
 
 interface TranscriptViewProps {
@@ -7,13 +7,17 @@ interface TranscriptViewProps {
   onSelectTerm: (term: CSTerm) => void;
   onToggleBookmark: (item: TranscriptSentence) => void;
   onClearHistory: () => void;
+  selectedWeek: string;
+  onSelectWeek: (week: string) => void;
 }
 
 export default function TranscriptView({
   transcriptHistory,
   onSelectTerm,
   onToggleBookmark,
-  onClearHistory
+  onClearHistory,
+  selectedWeek,
+  onSelectWeek
 }: TranscriptViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterBookmarked, setFilterBookmarked] = useState(false);
@@ -53,6 +57,29 @@ export default function TranscriptView({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {/* Week Filter (Options 1-50) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Calendar size={16} color="#38bdf8" />
+              <select
+                value={selectedWeek}
+                onChange={(e) => onSelectWeek(e.target.value)}
+                className="glass-card"
+                style={{
+                  padding: '8px 12px',
+                  fontSize: '0.85rem',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  borderColor: selectedWeek !== 'all' ? '#38bdf8' : 'var(--border-glass)'
+                }}
+              >
+                <option value="all">All Weeks (1-50)</option>
+                {Array.from({ length: 50 }, (_, i) => `Week ${i + 1}`).map(w => (
+                  <option key={w} value={w}>{w}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Search Input */}
             <div style={{ position: 'relative' }}>
               <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />

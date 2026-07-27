@@ -34,6 +34,8 @@ export interface TranscriptSentence {
   bookmarked?: boolean;
   courseId?: string;
   userId?: string;
+  date?: string;
+  weekNumber?: string;
 }
 
 export interface Course {
