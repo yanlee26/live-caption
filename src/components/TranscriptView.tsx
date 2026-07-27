@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Star, Sparkles, Clock, ArrowDown, Filter, Trash2, Calendar } from 'lucide-react';
+import { Search, Star, Sparkles, Clock, ArrowDown, Filter, Trash2, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CSTerm, TranscriptSentence } from '../types';
 
 interface TranscriptViewProps {
@@ -22,7 +22,17 @@ export default function TranscriptView({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterBookmarked, setFilterBookmarked] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+
+  // Pagination State
+  const [pageSize, setPageSize] = useState<number>(20);
+  const [pageIndex, setPageIndex] = useState<number>(1);
+
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setPageIndex(1);
+  }, [searchQuery, filterBookmarked, selectedWeek]);
 
   // Auto-scroll to bottom on new transcript item if autoScroll enabled
   useEffect(() => {
@@ -40,6 +50,14 @@ export default function TranscriptView({
 
     return matchesSearch && matchesBookmark;
   });
+
+  // Calculate pagination slice
+  const totalItems = filteredHistory.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePageIndex = Math.min(Math.max(1, pageIndex), totalPages);
+  const startIndex = (safePageIndex - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedHistory = filteredHistory.slice(startIndex, endIndex);
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 16px' }}>
@@ -144,13 +162,13 @@ export default function TranscriptView({
             paddingRight: '8px'
           }}
         >
-          {filteredHistory.length === 0 ? (
+          {paginatedHistory.length === 0 ? (
             <div style={{ textAlign: 'center', margin: 'auto', color: 'var(--text-muted)', padding: '40px 0' }}>
               <Filter size={36} style={{ opacity: 0.5, marginBottom: '12px' }} />
               <p style={{ fontSize: '0.95rem' }}>No transcript entries match your current search filter.</p>
             </div>
           ) : (
-            filteredHistory.map((item, index) => (
+            paginatedHistory.map((item, index) => (
               <div
                 key={item.id || index}
                 className="glass-card animate-float-up"
@@ -223,6 +241,90 @@ export default function TranscriptView({
               </div>
             ))
           )}
+        </div>
+
+        {/* Footer Pagination Bar */}
+        <div style={{
+          marginTop: '16px',
+          paddingTop: '12px',
+          borderTop: '1px solid var(--border-glass)',
+          display: 'flex',
+          alignItems: 'center',
+          justify: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          {/* Left: Item Range Info */}
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+            {totalItems > 0 ? (
+              <>Showing <strong style={{ color: 'var(--text-primary)' }}>{startIndex + 1}–{endIndex}</strong> of <strong style={{ color: 'var(--text-primary)' }}>{totalItems}</strong> lines</>
+            ) : (
+              '0 lines'
+            )}
+          </div>
+
+          {/* Right: Page Size & Navigation */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            {/* Page Size Select (10, 20, 50, 100) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Page Size:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPageIndex(1);
+                }}
+                className="glass-card"
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            {/* Page Index Navigation Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={() => setPageIndex(prev => Math.max(1, prev - 1))}
+                disabled={safePageIndex <= 1}
+                className="btn-secondary"
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '0.8rem',
+                  opacity: safePageIndex <= 1 ? 0.4 : 1,
+                  cursor: safePageIndex <= 1 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <ChevronLeft size={16} /> Prev
+              </button>
+
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600, padding: '0 4px' }}>
+                Page {safePageIndex} of {totalPages}
+              </span>
+
+              <button
+                onClick={() => setPageIndex(prev => Math.min(totalPages, prev + 1))}
+                disabled={safePageIndex >= totalPages}
+                className="btn-secondary"
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '0.8rem',
+                  opacity: safePageIndex >= totalPages ? 0.4 : 1,
+                  cursor: safePageIndex >= totalPages ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
         </div>
 
       </div>
