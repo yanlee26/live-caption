@@ -139,32 +139,16 @@ export default function CourseSelectorModal({
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Instructor</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Prof. Geoffrey Hinton"
-                  value={instructor}
-                  onChange={(e) => setInstructor(e.target.value)}
-                  className="glass-card"
-                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Category Domain</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as AcademicCategory)}
-                  className="glass-card"
-                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
-                >
-                  {ACADEMIC_CATEGORIES.filter(c => c !== 'All Categories').map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Instructor</label>
+              <input
+                type="text"
+                placeholder="e.g. Prof. Geoffrey Hinton, Dr. Sarah Smith"
+                value={instructor}
+                onChange={(e) => setInstructor(e.target.value)}
+                className="glass-card"
+                style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
+              />
             </div>
 
             <div style={{ marginBottom: '16px' }}>
@@ -241,9 +225,6 @@ export default function CourseSelectorModal({
                       fontFamily: 'var(--font-mono)'
                     }}>
                       {course.code}
-                    </span>
-                    <span className="term-badge" style={{ fontSize: '0.72rem', padding: '1px 8px' }}>
-                      {course.category}
                     </span>
                     {course.isCustom && (
                       <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', fontWeight: 600 }}>
