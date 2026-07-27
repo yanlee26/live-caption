@@ -8,14 +8,16 @@ export function calculateWeekNumber(startDateStr?: string, targetDate: Date = ne
   const dateStr = startDateStr || DEFAULT_COURSE_START_DATE;
   try {
     const start = new Date(dateStr);
-    // Midnight normalized comparison
+    if (isNaN(start.getTime())) {
+      return 'Week 1';
+    }
     const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
     const targetMidnight = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
 
     const diffTime = targetMidnight.getTime() - startMidnight.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return 'Week 1';
+    if (isNaN(diffDays) || diffDays < 0) return 'Week 1';
 
     const weekNum = Math.floor(diffDays / 7) + 1;
     return `Week ${weekNum}`;

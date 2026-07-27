@@ -1,5 +1,6 @@
+import React, { useEffect, useRef } from 'react';
 import { calculateWeekNumber } from '../utils/dateUtils';
-import { Mic, MicOff, ShieldCheck, Activity, GraduationCap, User } from 'lucide-react';
+import { Mic, MicOff, ShieldCheck, Activity, GraduationCap } from 'lucide-react';
 import { Course, UserProfile } from '../types';
 
 interface AudioControlsProps {
@@ -24,14 +25,12 @@ export default function AudioControls({
   isListening,
   onStartListening,
   onStopListening,
-  speechRate,
-  setSpeechRate,
   noiseSuppression,
   setNoiseSuppression
 }: AudioControlsProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Audio Equalizer Visualizer animation loop
+  // Audio Equalizer Visualizer animation loop with safety guards
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -40,51 +39,58 @@ export default function AudioControls({
     let animationFrameId: number;
 
     const render = () => {
-      const width = canvas.width;
-      const height = canvas.height;
-      ctx.clearRect(0, 0, width, height);
+      try {
+        const width = canvas.width || 260;
+        const height = canvas.height || 36;
+        ctx.clearRect(0, 0, width, height);
 
-      const barCount = 28;
-      const barWidth = width / barCount - 3;
-      const isActive = isListening;
+        const barCount = 28;
+        const barWidth = Math.max(2, (width / barCount) - 3);
+        const isActive = isListening;
 
-      for (let i = 0; i < barCount; i++) {
-        let barHeight = 4;
-        if (isActive) {
-          const time = Date.now() * 0.005;
-          const randomFactor = Math.sin(time + i * 0.4) * Math.cos(time * 0.5 + i * 0.2);
-          barHeight = Math.max(6, Math.abs(randomFactor) * (height - 6));
+        for (let i = 0; i < barCount; i++) {
+          let barHeight = 4;
+          if (isActive) {
+            const time = Date.now() * 0.005;
+            const randomFactor = Math.sin(time + i * 0.4) * Math.cos(time * 0.5 + i * 0.2);
+            barHeight = Math.max(6, Math.abs(randomFactor) * (height - 6));
+          }
+
+          const gradient = ctx.createLinearGradient(0, height, 0, 0);
+          gradient.addColorStop(0, '#0284c7');
+          gradient.addColorStop(0.5, '#38bdf8');
+          gradient.addColorStop(1, '#6366f1');
+
+          ctx.fillStyle = isActive ? gradient : 'rgba(148, 163, 184, 0.3)';
+          ctx.beginPath();
+          const renderCtx = ctx as any;
+          if (typeof renderCtx.roundRect === 'function') {
+            renderCtx.roundRect(i * (barWidth + 3), (height - barHeight) / 2, barWidth, barHeight, 3);
+          } else {
+            renderCtx.rect(i * (barWidth + 3), (height - barHeight) / 2, barWidth, barHeight);
+          }
+          ctx.fill();
         }
-
-        const gradient = ctx.createLinearGradient(0, height, 0, 0);
-        gradient.addColorStop(0, '#0284c7');
-        gradient.addColorStop(0.5, '#38bdf8');
-        gradient.addColorStop(1, '#6366f1');
-
-        ctx.fillStyle = isActive ? gradient : 'rgba(148, 163, 184, 0.3)';
-        ctx.beginPath();
-        const renderCtx = ctx as any;
-        if (typeof renderCtx.roundRect === 'function') {
-          renderCtx.roundRect(i * (barWidth + 3), (height - barHeight) / 2, barWidth, barHeight, 3);
-        } else {
-          renderCtx.rect(i * (barWidth + 3), (height - barHeight) / 2, barWidth, barHeight);
-        }
-        ctx.fill();
+      } catch (e) {
+        // Prevent canvas draw errors from breaking React execution
       }
 
       animationFrameId = requestAnimationFrame(render);
     };
 
     render();
-    return () => cancelAnimationFrame(animationFrameId);
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
   }, [isListening]);
 
   return (
-    <div className="glass-panel" style={{ padding: '16px 24px', margin: '16px auto', maxWidth: '1400px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+    <div className="glass-panel" style={{ borderRadius: 0, borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '16px 24px', background: 'rgba(15, 23, 42, 0.65)' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
         
-        {/* Left Side: Mic Start/Stop Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* Left Side: Mic Button & Active Course Details */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          
           <button
             onClick={() => {
               if (!user) {
@@ -121,7 +127,7 @@ export default function AudioControls({
                 boxShadow: isListening ? '0 0 10px #10b981' : 'none'
               }} />
               <span style={{ fontWeight: 600, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                {!user ? 'Visitor Mode (Not Signed In)' : (activeCourse ? `${activeCourse.code}: ${activeCourse.title}` : 'No Course Selected')}
+                {!user ? 'Visitor Mode (Not Signed In)' : (activeCourse ? `${activeCourse.code || ''}: ${activeCourse.title || ''}` : 'No Course Selected')}
                 {user && activeCourse && (
                   <span style={{
                     fontSize: '0.72rem',
@@ -143,7 +149,7 @@ export default function AudioControls({
                 </span>
               ) : activeCourse ? (
                 isListening ? (
-                  <>Listening to {activeCourse.instructor}'s lecture voice...</>
+                  <>Listening to {activeCourse.instructor || 'Instructor'}'s lecture voice...</>
                 ) : (
                   <>Course selected. Click "Start Live Microphone" to begin captioning.</>
                 )

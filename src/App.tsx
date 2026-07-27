@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import AudioControls from './components/AudioControls';
+import ErrorBoundary from './components/ErrorBoundary';
 import LiveCaptionBar from './components/LiveCaptionBar';
 import TranscriptView from './components/TranscriptView';
 import GlossaryManager from './components/GlossaryManager';
@@ -447,19 +448,21 @@ export default function App() {
       <main style={{ flex: 1, paddingBottom: '32px' }}>
 
         {/* Audio Control Toolbar */}
-        <AudioControls
-          user={user}
-          onOpenAuthModal={() => setShowAuthModal(true)}
-          activeCourse={activeCourse}
-          onOpenCourseSelector={() => setShowCourseSelectorModal(true)}
-          isListening={isListening}
-          onStartListening={handleStartListening}
-          onStopListening={handleStopListening}
-          speechRate={speechRate}
-          setSpeechRate={setSpeechRate}
-          noiseSuppression={noiseSuppression}
-          setNoiseSuppression={setNoiseSuppression}
-        />
+        <ErrorBoundary>
+          <AudioControls
+            user={user}
+            onOpenAuthModal={() => setShowAuthModal(true)}
+            activeCourse={activeCourse}
+            onOpenCourseSelector={() => setShowCourseSelectorModal(true)}
+            isListening={isListening}
+            onStartListening={handleStartListening}
+            onStopListening={handleStopListening}
+            speechRate={speechRate}
+            setSpeechRate={setSpeechRate}
+            noiseSuppression={noiseSuppression}
+            setNoiseSuppression={setNoiseSuppression}
+          />
+        </ErrorBoundary>
 
         {/* View 1: Subtitle Overlay View */}
         {currentView === 'subtitle' && (
