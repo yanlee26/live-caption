@@ -1,23 +1,34 @@
-import React, { useState } from 'react';
-import { Search, Plus, BookOpen, Trash2, Sparkles } from 'lucide-react';
-import { ACADEMIC_CATEGORIES, DEFAULT_CS_GLOSSARY } from '../data/csGlossary';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, BookOpen, Trash2, Sparkles, ChevronLeft, ChevronRight, RefreshCw, Database } from 'lucide-react';
+import { ACADEMIC_CATEGORIES } from '../data/csGlossary';
 import { AcademicCategory, CSTerm } from '../types';
+import { fetchGlossaryTermsAPI } from '../utils/storage';
 
 interface GlossaryManagerProps {
   customGlossary: CSTerm[];
   onAddCustomTerm: (term: CSTerm) => void;
   onDeleteCustomTerm: (id: string) => void;
   onSelectTerm: (term: CSTerm) => void;
+  userId?: string;
 }
 
 export default function GlossaryManager({
   customGlossary,
   onAddCustomTerm,
   onDeleteCustomTerm,
-  onSelectTerm
+  onSelectTerm,
+  userId
 }: GlossaryManagerProps) {
   const [selectedCategory, setSelectedCategory] = useState<AcademicCategory>('All Categories');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // API Pagination & Data State
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 6; // 6 terms per page for responsive 3x2 grid layout
+  const [loading, setLoading] = useState<boolean>(false);
+  const [terms, setTerms] = useState<CSTerm[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
 
   // New Custom Term Form State
   const [showAddForm, setShowAddForm] = useState(false);
@@ -27,16 +38,44 @@ export default function GlossaryManager({
   const [newDefinition, setNewDefinition] = useState('');
   const [newCodeExample, setNewCodeExample] = useState('');
 
-  const allTerms = [...customGlossary, ...DEFAULT_CS_GLOSSARY];
+  // Fetch API terms whenever Category, Search, Page or customGlossary updates
+  useEffect(() => {
+    let isSubscribed = true;
+    setLoading(true);
 
-  const filteredTerms = allTerms.filter(item => {
-    const matchesCat = selectedCategory === 'All Categories' || item.category === selectedCategory;
-    const matchesSearch = !searchTerm || 
-      item.term.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.chinese.includes(searchTerm) ||
-      item.definition.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
+    fetchGlossaryTermsAPI({
+      category: selectedCategory,
+      search: searchTerm,
+      page,
+      pageSize,
+      userId
+    }).then(res => {
+      if (isSubscribed) {
+        setTerms(res.data);
+        setTotal(res.total);
+        setTotalPages(res.totalPages);
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (isSubscribed) setLoading(false);
+    });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [selectedCategory, searchTerm, page, customGlossary.length, userId]);
+
+  // Reset page to 1 on category change
+  const handleCategoryChange = (cat: AcademicCategory) => {
+    setSelectedCategory(cat);
+    setPage(1);
+  };
+
+  // Reset page to 1 on search term change
+  const handleSearchChange = (val: string) => {
+    setSearchTerm(val);
+    setPage(1);
+  };
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +98,11 @@ export default function GlossaryManager({
     setNewDefinition('');
     setNewCodeExample('');
     setShowAddForm(false);
+    setPage(1);
   };
+
+  const startItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endItem = Math.min(page * pageSize, total);
 
   return (
     <div style={{ maxWidth: '1400px', margin: '24px auto 0 auto', padding: '0 16px' }}>
@@ -76,13 +119,19 @@ export default function GlossaryManager({
             </p>
           </div>
 
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="btn-primary"
-            style={{ padding: '8px 16px', fontSize: '0.85rem' }}
-          >
-            <Plus size={16} /> {showAddForm ? 'Cancel' : 'Add Custom Course Term'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '6px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+              <Database size={13} /> API Dynamic Data Engine ({total} Terms)
+            </span>
+
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="btn-primary"
+              style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+            >
+              <Plus size={16} /> {showAddForm ? 'Cancel' : 'Add Custom Course Term'}
+            </button>
+          </div>
         </div>
 
         {/* Add Custom Term Form */}
@@ -109,7 +158,7 @@ export default function GlossaryManager({
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Chinese Translation *</label>
                 <input
                   type="text"
-                  placeholder="e.g. 映射化简算法, 假设检验..."
+                  placeholder="e.g. 映射化简分布式框架..."
                   value={newChinese}
                   onChange={(e) => setNewChinese(e.target.value)}
                   className="glass-card"
@@ -119,161 +168,235 @@ export default function GlossaryManager({
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Academic Field</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Category</label>
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value as AcademicCategory)}
                   className="glass-card"
-                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
+                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none', background: 'var(--bg-glass)' }}
                 >
                   {ACADEMIC_CATEGORIES.filter(c => c !== 'All Categories').map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat} value={cat} style={{ background: '#0f172a' }}>{cat}</option>
                   ))}
                 </select>
               </div>
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Definition & Notes</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Academic Definition</label>
               <textarea
-                rows={2}
-                placeholder="Brief explanation of this term for your course notes..."
+                placeholder="Detailed English or Chinese explanation of the term..."
                 value={newDefinition}
                 onChange={(e) => setNewDefinition(e.target.value)}
                 className="glass-card"
-                style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none', resize: 'vertical' }}
+                rows={2}
+                style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none', resize: 'none' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button type="button" onClick={() => setShowAddForm(false)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="btn-secondary"
+                style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.8rem' }}>
+              <button
+                type="submit"
+                className="btn-primary"
+                style={{ padding: '6px 16px', fontSize: '0.8rem' }}
+              >
                 Save Term
               </button>
             </div>
           </form>
         )}
 
-        {/* Filter Bar */}
+        {/* Filters & Search Toolbar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
           
           {/* Category Tabs */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {ACADEMIC_CATEGORIES.map(category => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            {ACADEMIC_CATEGORIES.map(cat => (
               <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={selectedCategory === category ? 'btn-primary' : 'btn-secondary'}
-                style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                key={cat}
+                onClick={() => handleCategoryChange(cat)}
+                className={selectedCategory === cat ? 'btn-primary' : 'btn-secondary'}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.78rem',
+                  borderRadius: '999px',
+                  borderColor: selectedCategory === cat ? '#38bdf8' : 'var(--border-glass)'
+                }}
               >
-                {category}
+                {cat}
               </button>
             ))}
           </div>
 
-          {/* Search Input */}
+          {/* Search Box */}
           <div style={{ position: 'relative' }}>
-            <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              placeholder="Search terms or definitions..."
+              placeholder="API Search terms or definitions..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="glass-card"
               style={{
                 padding: '8px 12px 8px 36px',
                 fontSize: '0.85rem',
                 color: 'var(--text-primary)',
                 outline: 'none',
-                width: '240px'
+                width: '260px'
               }}
             />
           </div>
 
         </div>
 
-        {/* Term Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-          gap: '16px',
-          maxHeight: 'calc(100vh - 360px)',
-          overflowY: 'auto',
-          paddingRight: '4px'
-        }}>
-          {filteredTerms.map(item => (
-            <div
-              key={item.id}
-              className="glass-card animate-float-up"
-              onClick={() => onSelectTerm(item)}
-              style={{
-                padding: '16px 20px',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                position: 'relative'
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span className="term-badge" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
-                    {item.category}
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {item.isAutoSaved && (
-                      <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.18)', color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                        <Sparkles size={10} /> Auto-Saved
+        {/* API Loading Skeleton / Empty State */}
+        {loading ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: '10px', color: 'var(--text-muted)' }}>
+            <RefreshCw size={18} className="animate-spin" color="#38bdf8" />
+            <span style={{ fontSize: '0.9rem' }}>Querying Academic Term API...</span>
+          </div>
+        ) : terms.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+            <BookOpen size={36} color="var(--text-muted)" style={{ marginBottom: '12px', opacity: 0.5 }} />
+            <p style={{ fontSize: '0.95rem', fontWeight: 600 }}>No matching academic terms found from API</p>
+            <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Try adjusting your search query or selected category filter.</p>
+          </div>
+        ) : (
+          <>
+            {/* Term Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+              gap: '16px',
+              minHeight: '260px',
+              marginBottom: '20px'
+            }}>
+              {terms.map(item => (
+                <div
+                  key={item.id}
+                  className="glass-card animate-float-up"
+                  onClick={() => onSelectTerm(item)}
+                  style={{
+                    padding: '18px 20px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    position: 'relative'
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <span className="term-badge" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
+                        {item.category}
                       </span>
-                    )}
-                    {item.isCustom && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteCustomTerm(item.id);
-                        }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
-                        title="Delete Custom Term"
-                      >
-                        <Trash2 size={14} color="#ef4444" />
-                      </button>
-                    )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {item.isAutoSaved && (
+                          <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.18)', color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <Sparkles size={10} /> Auto-Saved
+                          </span>
+                        )}
+                        {item.isCustom && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteCustomTerm(item.id);
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
+                            title="Delete Custom Term"
+                          >
+                            <Trash2 size={14} color="#ef4444" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>
+                        {item.term}
+                      </strong>
+                      <span style={{ fontSize: '0.88rem', color: '#38bdf8', fontWeight: 600 }}>
+                        {item.chinese}
+                      </span>
+                    </div>
+
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {item.definition || item.definitionCn}
+                    </p>
+                  </div>
+
+                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Click for code & details
+                    </span>
+                    <Sparkles size={13} color="#38bdf8" />
                   </div>
                 </div>
+              ))}
+            </div>
 
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '6px' }}>
-                  <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {item.term}
-                  </h4>
-                  <span style={{ fontSize: '0.9rem', color: '#38bdf8', fontWeight: 600 }}>
-                    {item.chinese}
-                  </span>
-                </div>
+            {/* Pagination Controls Bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingTop: '16px',
+              borderTop: '1px solid var(--border-glass)',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              {/* Items Counter */}
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Showing <strong style={{ color: 'var(--text-primary)' }}>{startItem} - {endItem}</strong> of <strong style={{ color: '#38bdf8' }}>{total}</strong> Terms
+              </span>
 
-                <p style={{
-                  fontSize: '0.82rem',
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1.5,
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
-                }}>
-                  {item.definition}
-                </p>
-              </div>
+              {/* Page Number Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.78rem', opacity: page <= 1 ? 0.5 : 1, cursor: page <= 1 ? 'not-allowed' : 'pointer' }}
+                >
+                  <ChevronLeft size={14} /> Previous
+                </button>
 
-              <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  Click for code & details
-                </span>
-                <Sparkles size={14} color="#38bdf8" />
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={page === p ? 'btn-primary' : 'btn-secondary'}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '0.78rem',
+                      minWidth: '32px',
+                      borderColor: page === p ? '#38bdf8' : 'var(--border-glass)'
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.78rem', opacity: page >= totalPages ? 0.5 : 1, cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}
+                >
+                  Next <ChevronRight size={14} />
+                </button>
               </div>
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
       </div>
     </div>

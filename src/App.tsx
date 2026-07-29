@@ -712,6 +712,7 @@ export default function App() {
             onAddCustomTerm={handleAddCustomTerm}
             onDeleteCustomTerm={handleDeleteCustomTerm}
             onSelectTerm={(term) => setSelectedTermForModal(term)}
+            userId={user?.id}
           />
         )}
 

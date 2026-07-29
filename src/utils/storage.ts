@@ -309,6 +309,89 @@ export async function syncGlossaryToSupabase(glossary: CSTerm[], userId: string)
     // Ignore error until tables are created
   }
 }
+export interface GlossaryQueryParams {
+  category?: AcademicCategory;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+  userId?: string;
+}
+
+export interface GlossaryQueryResult {
+  data: CSTerm[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export async function fetchGlossaryTermsAPI(params: GlossaryQueryParams): Promise<GlossaryQueryResult> {
+  const { category = 'All Categories', search = '', page = 1, pageSize = 6, userId } = params;
+
+  // Attempt Supabase backend API query first if configured
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      let query = supabase.from('custom_glossary').select('*', { count: 'exact' });
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+      if (category && category !== 'All Categories') {
+        query = query.eq('category', category);
+      }
+      if (search && search.trim()) {
+        const pattern = `%${search.trim()}%`;
+        query = query.or(`term.ilike.${pattern},chinese.ilike.${pattern},definition.ilike.${pattern}`);
+      }
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      const { data, count, error } = await query.range(from, to).order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const total = count || data.length;
+        const totalPages = Math.ceil(total / pageSize);
+        const mapped: CSTerm[] = data.map(item => ({
+          id: item.id,
+          term: item.term,
+          chinese: item.chinese,
+          category: item.category || 'General Academic',
+          definition: item.definition || '',
+          definitionCn: item.definition_cn || '',
+          isCustom: true
+        }));
+        return { data: mapped, total, page, pageSize, totalPages };
+      }
+    } catch (e) {
+      // Fallback to local memory API simulation
+    }
+  }
+
+  // Memory/Local API query simulation
+  const savedCustom = loadCustomGlossary();
+  const allTerms = Array.from(new Map([...savedCustom, ...DEFAULT_CS_GLOSSARY].map(item => [item.term.toLowerCase(), item])).values());
+
+  const filtered = allTerms.filter(item => {
+    const matchesCat = category === 'All Categories' || item.category === category;
+    const matchesSearch = !search ||
+      item.term.toLowerCase().includes(search.toLowerCase()) ||
+      item.chinese.includes(search) ||
+      item.definition.toLowerCase().includes(search.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const startIndex = (page - 1) * pageSize;
+  const pageData = filtered.slice(startIndex, startIndex + pageSize);
+
+  return {
+    data: pageData,
+    total,
+    page,
+    pageSize,
+    totalPages
+  };
+}
 
 // --- App Settings Storage ---
 export function loadAppSettings(): AppSettings {
