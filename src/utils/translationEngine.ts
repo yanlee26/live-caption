@@ -153,11 +153,15 @@ export async function translateWithGemini(
     }
   };
 
-  const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash'];
+  const endpointsToTry = [
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(cleanKey)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${encodeURIComponent(cleanKey)}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(cleanKey)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${encodeURIComponent(cleanKey)}`
+  ];
 
-  for (const model of modelsToTry) {
+  for (const endpoint of endpointsToTry) {
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(cleanKey)}`;
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -173,10 +177,10 @@ export async function translateWithGemini(
         }
       } else {
         const errText = await res.text();
-        console.warn(`Gemini API model (${model}) returned error ${res.status}:`, errText);
+        console.warn(`Gemini API endpoint (${endpoint.split('?')[0]}) returned error ${res.status}:`, errText);
       }
     } catch (e) {
-      console.warn(`Gemini API request failed for model ${model}:`, e);
+      console.warn(`Gemini API request failed for endpoint (${endpoint.split('?')[0]}):`, e);
     }
   }
 
