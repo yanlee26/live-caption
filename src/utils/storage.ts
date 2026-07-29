@@ -1,5 +1,6 @@
 import { Course, CSTerm, TranscriptSentence } from '../types';
 import { INITIAL_COURSES } from '../data/courses';
+import { DEFAULT_CS_GLOSSARY } from '../data/csGlossary';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const KEYS = {
@@ -231,14 +232,14 @@ export function loadCustomGlossary(): CSTerm[] {
     const raw = localStorage.getItem(KEYS.CUSTOM_GLOSSARY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
     }
   } catch (e) {
     console.warn('Failed to load custom glossary from localStorage:', e);
   }
-  return [];
+  return DEFAULT_CS_GLOSSARY;
 }
 
 export function saveCustomGlossary(glossary: CSTerm[], userId?: string) {
