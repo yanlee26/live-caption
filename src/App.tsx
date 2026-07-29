@@ -177,7 +177,11 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Sync state changes to localStorage & Supabase
+  // Ref to hold latest translation settings for speech callbacks to prevent stale closures
+  const translationParamsRef = useRef({ translationProvider, geminiApiKey, openAiApiKey, openAiModel, customGlossary });
+  useEffect(() => {
+    translationParamsRef.current = { translationProvider, geminiApiKey, openAiApiKey, openAiModel, customGlossary };
+  }, [translationProvider, geminiApiKey, openAiApiKey, openAiModel, customGlossary]);
   useEffect(() => { saveCourses(courses, user?.id); }, [courses, user?.id]);
   useEffect(() => { if (activeCourse) saveActiveCourseId(activeCourse.id); }, [activeCourse]);
   useEffect(() => { saveTranscripts(transcriptHistory, user?.id); }, [transcriptHistory, user?.id]);
@@ -338,6 +342,15 @@ export default function App() {
   const processLiveSpeech = (text: string, isFinal: boolean = false) => {
     if (!text || !text.trim()) return;
 
+    // Retrieve latest translation provider & keys dynamically from ref
+    const {
+      translationProvider: activeProvider,
+      geminiApiKey: activeGeminiKey,
+      openAiApiKey: activeOpenAiKey,
+      openAiModel: activeOpenAiModel,
+      customGlossary: activeGlossary
+    } = translationParamsRef.current;
+
     const segments = segmentSpeechText(text.trim());
     if (segments.length === 0) return;
 
@@ -353,7 +366,7 @@ export default function App() {
     completedSegments.forEach(seg => {
       if (seg.trim()) {
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const instantProcessed = translateWithTermPreservation(seg, customGlossary);
+        const instantProcessed = translateWithTermPreservation(seg, activeGlossary);
         const captionObj: TranscriptSentence = {
           id: `live-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
           time: timeStr,
@@ -370,7 +383,7 @@ export default function App() {
 
         setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, captionObj));
 
-        fetchOnlineTranslation(seg, customGlossary, translationProvider, geminiApiKey, openAiApiKey, openAiModel).then(onlineRes => {
+        fetchOnlineTranslation(seg, activeGlossary, activeProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineRes => {
           if (onlineRes && onlineRes.chinese) {
             setTranscriptHistory(prev => prev.map(item =>
               item.id === captionObj.id ? { ...item, chinese: onlineRes.chinese, detectedTerms: onlineRes.detectedTerms } : item
@@ -384,7 +397,7 @@ export default function App() {
     if (activeSegment.trim()) {
       latestSpeechTextRef.current = activeSegment.trim();
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const instantProcessed = translateWithTermPreservation(activeSegment, customGlossary);
+      const instantProcessed = translateWithTermPreservation(activeSegment, activeGlossary);
 
       const activeCaptionObj: TranscriptSentence = {
         id: `live-active-${Date.now()}`,
@@ -406,7 +419,7 @@ export default function App() {
         setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, activeCaptionObj));
       }
 
-      fetchOnlineTranslation(activeSegment, customGlossary, translationProvider, geminiApiKey, openAiApiKey, openAiModel).then(onlineResult => {
+      fetchOnlineTranslation(activeSegment, activeGlossary, activeProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineResult => {
         if (onlineResult && onlineResult.chinese && latestSpeechTextRef.current === activeSegment.trim()) {
           const upgradedObj: TranscriptSentence = {
             ...activeCaptionObj,
@@ -461,7 +474,9 @@ export default function App() {
       };
 
       recognition.onerror = (err: any) => {
-        console.warn('Speech recognition status:', err.error);
+        if (err.error !== 'no-speech' && err.error !== 'aborted') {
+          console.info('Speech recognition status:', err.error);
+        }
         if (isListeningRef.current && err.error !== 'not-allowed') {
           setTimeout(() => {
             if (isListeningRef.current && recognitionRef.current) {

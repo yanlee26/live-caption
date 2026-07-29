@@ -85,13 +85,23 @@ body {
 }
 
 /* Animations */
-@keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+@keyframes pulseDot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+    transform: scale(0.95);
   }
   50% {
-    box-shadow: 0 0 30px rgba(56, 189, 248, 0.6);
+    box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
+    transform: scale(1.05);
   }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    transform: scale(0.95);
+  }
+}
+
+.recording-dot-pulse {
+  animation: pulseDot 2.4s ease-in-out infinite;
 }
 
 @keyframes waveBar {
@@ -112,10 +122,6 @@ body {
 
 .animate-float-up {
   animation: floatUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.pulsing-recording {
-  animation: pulseGlow 2s infinite;
 }
 
 /* Custom Scrollbar */

@@ -142,8 +142,8 @@ export default function AudioControls({
             <>
               <button
                 onClick={onPauseSession}
-                className="btn-secondary pulsing-recording"
-                style={{ padding: '8px 14px', fontSize: '0.82rem', borderColor: '#f59e0b', color: '#f59e0b', whiteSpace: 'nowrap' }}
+                className="btn-secondary"
+                style={{ padding: '8px 14px', fontSize: '0.82rem', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#f59e0b', whiteSpace: 'nowrap' }}
               >
                 <Pause size={15} /> Pause
               </button>
@@ -180,14 +180,16 @@ export default function AudioControls({
         {/* Section 2: Active Course & Live Timer */}
         <div style={{ flex: 1, minWidth: '280px', flexShrink: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
-            <span style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: recordingState === 'recording' ? '#10b981' : (recordingState === 'paused' ? '#f59e0b' : (user ? (activeCourse ? '#38bdf8' : '#f59e0b') : '#ef4444')),
-              boxShadow: recordingState === 'recording' ? '0 0 8px #10b981' : 'none',
-              flexShrink: 0
-            }} />
+            <span
+              className={recordingState === 'recording' ? 'recording-dot-pulse' : undefined}
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: recordingState === 'recording' ? '#10b981' : (recordingState === 'paused' ? '#f59e0b' : (user ? (activeCourse ? '#38bdf8' : '#f59e0b') : '#ef4444')),
+                flexShrink: 0
+              }}
+            />
             
             <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {!user ? 'Visitor Mode' : (activeCourse ? `${activeCourse.code}: ${activeCourse.title}` : 'No Course Selected')}
