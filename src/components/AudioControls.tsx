@@ -17,6 +17,7 @@ interface AudioControlsProps {
   noiseSuppression: boolean;
   setNoiseSuppression: (enabled: boolean) => void;
   translationProvider: 'google' | 'gemini';
+  geminiApiKey?: string;
   onOpenSettings: () => void;
 }
 
@@ -44,9 +45,12 @@ export default function AudioControls({
   noiseSuppression,
   setNoiseSuppression,
   translationProvider,
+  geminiApiKey,
   onOpenSettings
 }: AudioControlsProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isGeminiActive = translationProvider === 'gemini';
+  const hasGeminiKey = Boolean(geminiApiKey || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY));
 
   // Audio Equalizer Visualizer animation loop with safety guards
   useEffect(() => {
@@ -264,15 +268,15 @@ export default function AudioControls({
             style={{
               padding: '5px 10px',
               fontSize: '0.75rem',
-              color: translationProvider === 'gemini' ? '#818cf8' : '#38bdf8',
-              borderColor: translationProvider === 'gemini' ? 'rgba(129, 140, 248, 0.4)' : 'rgba(56, 189, 248, 0.3)',
-              background: translationProvider === 'gemini' ? 'rgba(99, 102, 241, 0.12)' : undefined,
+              color: isGeminiActive ? (hasGeminiKey ? '#818cf8' : '#f59e0b') : '#38bdf8',
+              borderColor: isGeminiActive ? (hasGeminiKey ? 'rgba(129, 140, 248, 0.4)' : 'rgba(245, 158, 11, 0.4)') : 'rgba(56, 189, 248, 0.3)',
+              background: isGeminiActive ? (hasGeminiKey ? 'rgba(99, 102, 241, 0.12)' : 'rgba(245, 158, 11, 0.1)') : undefined,
               whiteSpace: 'nowrap'
             }}
-            title="Click to change Translation Provider in Settings"
+            title={isGeminiActive ? (hasGeminiKey ? 'Using Gemini LLM for translation' : 'No Gemini API Key found. Falling back to Google Translate. Click to enter key.') : 'Click to change Translation Provider in Settings'}
           >
-            <Sparkles size={13} color={translationProvider === 'gemini' ? '#818cf8' : '#38bdf8'} />
-            {translationProvider === 'gemini' ? 'Gemini AI (LLM)' : 'Google Translate'}
+            <Sparkles size={13} color={isGeminiActive ? (hasGeminiKey ? '#818cf8' : '#f59e0b') : '#38bdf8'} />
+            {isGeminiActive ? (hasGeminiKey ? 'Gemini AI ✨' : 'Gemini (No Key → Fallback)') : 'Google Translate'}
           </button>
 
           {/* Switch Course */}

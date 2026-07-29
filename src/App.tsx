@@ -590,6 +590,7 @@ export default function App() {
             noiseSuppression={noiseSuppression}
             setNoiseSuppression={setNoiseSuppression}
             translationProvider={translationProvider}
+            geminiApiKey={geminiApiKey}
             onOpenSettings={() => setShowSettingsModal(true)}
           />
         </ErrorBoundary>

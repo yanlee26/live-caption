@@ -198,10 +198,10 @@ export default function SettingsModal({
             className="glass-card"
             style={{ width: '100%', padding: '10px', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
           >
-            <option value="en-US">🇺🇸 English (US Accent)</option>
-            <option value="en-GB">🇬🇧 English (UK Accent)</option>
-            <option value="en-AU">🇦🇺 English (Australian Accent)</option>
-            <option value="en-CA">🇨🇦 English (Canadian Accent)</option>
+            <option value="en-IN">🇮🇳 English (Indian Accent / 印度口音)</option>
+            <option value="en-NZ">🇳🇿 English (New Zealand Accent / 新西兰口音)</option>
+            <option value="en-GB">🇬🇧 English (UK Accent / 英国口音)</option>
+            <option value="en-US">🇺🇸 English (US Accent / 美国口音)</option>
           </select>
         </div>
 
