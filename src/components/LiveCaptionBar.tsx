@@ -138,7 +138,7 @@ export default function LiveCaptionBar({
           borderBottom: '1px solid var(--border-glass)'
         }}>
           {/* Stream Engine Indicator Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
             <span className="recording-dot-pulse" style={{
               width: '8px',
               height: '8px',
@@ -146,12 +146,12 @@ export default function LiveCaptionBar({
               backgroundColor: '#10b981',
               flexShrink: 0
             }} />
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <Zap size={13} color="#10b981" /> Stream Engine: Active (0ms Latency)
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+              <Zap size={13} color="#10b981" /> Live Subtitle Overlay
             </span>
             {cacheCount > 0 && (
-              <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 600 }}>
-                {cacheCount} Cached
+              <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                {cacheCount} Cached (0ms)
               </span>
             )}
           </div>

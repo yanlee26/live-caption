@@ -11,7 +11,7 @@ import SettingsModal from './components/SettingsModal';
 import CourseSelectorModal from './components/CourseSelectorModal';
 import AuthModal from './components/AuthModal';
 
-import { translateWithTermPreservation, fetchOnlineTranslation, matchCSTerms } from './utils/translationEngine';
+import { translateWithTermPreservation, fetchOnlineTranslation, matchCSTerms, autoExtractAndSaveTerms } from './utils/translationEngine';
 import { streamingTranslationService } from './utils/streamingTranslationService';
 import { calculateWeekNumber } from './utils/dateUtils';
 import { Calendar } from 'lucide-react';
@@ -348,9 +348,13 @@ export default function App() {
       translationProvider: activeProvider,
       geminiApiKey: activeGeminiKey,
       openAiApiKey: activeOpenAiKey,
-      openAiModel: activeOpenAiModel,
-      customGlossary: activeGlossary
     } = translationParamsRef.current;
+
+    // Auto-discover and save newly encountered academic terms into user dictionary
+    const { updatedGlossary, newlyDiscovered } = autoExtractAndSaveTerms(text.trim(), activeGlossary);
+    if (newlyDiscovered.length > 0) {
+      setCustomGlossary(updatedGlossary);
+    }
 
     const segments = segmentSpeechText(text.trim());
     if (segments.length === 0) return;

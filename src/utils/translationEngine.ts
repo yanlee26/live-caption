@@ -54,6 +54,41 @@ export function matchCSTerms(text: string, customGlossary: CSTerm[] = []): CSTer
 }
 
 /**
+ * Automatically extract newly encountered academic terms from speech text that are not in customGlossary
+ */
+export function autoExtractAndSaveTerms(text: string, customGlossary: CSTerm[] = []): { updatedGlossary: CSTerm[]; newlyDiscovered: CSTerm[] } {
+  if (!text || !text.trim()) {
+    return { updatedGlossary: customGlossary, newlyDiscovered: [] };
+  }
+
+  const lowerText = text.toLowerCase();
+  const existingTermNames = new Set(customGlossary.map(t => t.term.toLowerCase()));
+  const newlyDiscovered: CSTerm[] = [];
+
+  // Check against master default CS/Academic dictionary
+  DEFAULT_CS_GLOSSARY.forEach(defaultTerm => {
+    const termLower = defaultTerm.term.toLowerCase();
+    if (lowerText.includes(termLower) && !existingTermNames.has(termLower)) {
+      existingTermNames.add(termLower);
+      const autoSavedTerm: CSTerm = {
+        ...defaultTerm,
+        id: `auto-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        isAutoSaved: true,
+        isCustom: true
+      };
+      newlyDiscovered.push(autoSavedTerm);
+    }
+  });
+
+  if (newlyDiscovered.length > 0) {
+    const updatedGlossary = [...newlyDiscovered, ...customGlossary];
+    return { updatedGlossary, newlyDiscovered };
+  }
+
+  return { updatedGlossary: customGlossary, newlyDiscovered: [] };
+}
+
+/**
  * Post-process Chinese translation to protect academic technical terms in English
  */
 export function applyCSTermPreservation(chineseText: string, detectedTerms: CSTerm[]): string {

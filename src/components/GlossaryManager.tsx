@@ -222,8 +222,13 @@ export default function GlossaryManager({
                   <span className="term-badge" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
                     {item.category}
                   </span>
-                  {item.isCustom && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {item.isAutoSaved && (
+                      <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.18)', color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <Sparkles size={10} /> Auto-Saved
+                      </span>
+                    )}
+                    {item.isCustom && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -234,8 +239,8 @@ export default function GlossaryManager({
                       >
                         <Trash2 size={14} color="#ef4444" />
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '6px' }}>

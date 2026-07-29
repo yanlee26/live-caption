@@ -21,6 +21,7 @@ export interface CSTerm {
   codeExample?: string;
   examplesInLecture?: string;
   isCustom?: boolean;
+  isAutoSaved?: boolean;
 }
 
 export interface TranscriptSentence {
