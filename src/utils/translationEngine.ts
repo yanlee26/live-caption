@@ -130,53 +130,56 @@ export async function translateWithGemini(
   apiKey?: string
 ): Promise<string | null> {
   const key = apiKey || (import.meta.env ? import.meta.env.VITE_GEMINI_API_KEY : '');
-  if (!key) {
+  if (!key || !key.trim()) {
     console.warn('Gemini API key is not configured. Falling back to standard Google Translate...');
     return null;
   }
 
-  try {
-    const termsContext = detectedTerms.length > 0
-      ? `Custom Glossary Context: ${detectedTerms.map(t => `${t.term} -> ${t.chinese}`).join('; ')}\n\n`
-      : '';
+  const cleanKey = key.trim();
+  const termsContext = detectedTerms.length > 0
+    ? `Custom Glossary Context: ${detectedTerms.map(t => `${t.term} -> ${t.chinese}`).join('; ')}\n\n`
+    : '';
 
-    const payload = {
-      system_instruction: {
-        parts: [{ text: GEMINI_TRANSLATION_SYSTEM_PROMPT }]
-      },
-      contents: [
-        {
-          parts: [
-            { text: `${termsContext}Lecture Text to Translate:\n"${englishText.trim()}"` }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 400
+  const promptText = `${GEMINI_TRANSLATION_SYSTEM_PROMPT}\n\n${termsContext}Lecture Text to Translate:\n"${englishText.trim()}"`;
+  const payload = {
+    contents: [
+      {
+        parts: [{ text: promptText }]
       }
-    };
-
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key.trim())}`;
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (rawText && typeof rawText === 'string' && rawText.trim()) {
-        const cleaned = rawText.trim().replace(/^["']|["']$/g, '');
-        return applyCSTermPreservation(cleaned, detectedTerms);
-      }
-    } else {
-      console.warn('Gemini API request returned error status:', res.status);
+    ],
+    generationConfig: {
+      temperature: 0.2,
+      maxOutputTokens: 400
     }
-  } catch (e) {
-    console.warn('Failed to translate with Gemini API:', e);
+  };
+
+  const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash'];
+
+  for (const model of modelsToTry) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(cleanKey)}`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText && typeof rawText === 'string' && rawText.trim()) {
+          const cleaned = rawText.trim().replace(/^["']|["']$/g, '');
+          return applyCSTermPreservation(cleaned, detectedTerms);
+        }
+      } else {
+        const errText = await res.text();
+        console.warn(`Gemini API model (${model}) returned error ${res.status}:`, errText);
+      }
+    } catch (e) {
+      console.warn(`Gemini API request failed for model ${model}:`, e);
+    }
   }
+
   return null;
 }
 
@@ -190,12 +193,13 @@ export async function translateWithOpenAI(
   model: string = 'gpt-4o-mini'
 ): Promise<string | null> {
   const key = apiKey || (import.meta.env ? import.meta.env.VITE_OPENAI_API_KEY : '');
-  if (!key) {
+  if (!key || !key.trim()) {
     console.warn('OpenAI API key is not configured. Falling back to standard Google Translate...');
     return null;
   }
 
   try {
+    const cleanKey = key.trim();
     const termsContext = detectedTerms.length > 0
       ? `Custom Glossary Context: ${detectedTerms.map(t => `${t.term} -> ${t.chinese}`).join('; ')}\n\n`
       : '';
@@ -214,7 +218,7 @@ export async function translateWithOpenAI(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key.trim()}`
+        'Authorization': `Bearer ${cleanKey}`
       },
       body: JSON.stringify(payload)
     });
@@ -227,7 +231,8 @@ export async function translateWithOpenAI(
         return applyCSTermPreservation(cleaned, detectedTerms);
       }
     } else {
-      console.warn('OpenAI API request returned error status:', res.status);
+      const errText = await res.text();
+      console.warn(`OpenAI API returned error ${res.status}:`, errText);
     }
   } catch (e) {
     console.warn('Failed to translate with OpenAI API:', e);
