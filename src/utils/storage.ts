@@ -15,8 +15,10 @@ export interface AppSettings {
   layoutOrder: 'en-top' | 'cn-top';
   theme: 'dark' | 'light';
   speechLang: string;
-  translationProvider: 'google' | 'gemini';
+  translationProvider: 'google' | 'gemini' | 'openai';
   geminiApiKey: string;
+  openAiApiKey: string;
+  openAiModel: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -25,7 +27,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
   speechLang: 'en-US',
   translationProvider: 'google',
-  geminiApiKey: ''
+  geminiApiKey: '',
+  openAiApiKey: '',
+  openAiModel: 'gpt-4o-mini'
 };
 
 // --- Courses Storage ---
@@ -355,7 +359,9 @@ export async function fetchSettingsFromSupabase(userId: string): Promise<AppSett
       theme: data.theme ?? DEFAULT_SETTINGS.theme,
       speechLang: data.speech_lang ?? DEFAULT_SETTINGS.speechLang,
       translationProvider: data.translation_provider ?? DEFAULT_SETTINGS.translationProvider,
-      geminiApiKey: data.gemini_api_key ?? DEFAULT_SETTINGS.geminiApiKey
+      geminiApiKey: data.gemini_api_key ?? DEFAULT_SETTINGS.geminiApiKey,
+      openAiApiKey: data.openai_api_key ?? DEFAULT_SETTINGS.openAiApiKey,
+      openAiModel: data.openai_model ?? DEFAULT_SETTINGS.openAiModel
     };
   } catch (e) {
     return null;
@@ -373,6 +379,8 @@ export async function syncSettingsToSupabase(settings: AppSettings, userId: stri
       speech_lang: settings.speechLang,
       translation_provider: settings.translationProvider,
       gemini_api_key: settings.geminiApiKey,
+      openai_api_key: settings.openAiApiKey,
+      openai_model: settings.openAiModel,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
 

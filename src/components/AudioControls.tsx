@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { calculateWeekNumber } from '../utils/dateUtils';
-import { Mic, Pause, Play, XCircle, ShieldCheck, Activity, GraduationCap, Sparkles, Clock } from 'lucide-react';
+import { Mic, Pause, Play, XCircle, ShieldCheck, Activity, GraduationCap, Sparkles, Clock, Bot } from 'lucide-react';
 import { Course, UserProfile } from '../types';
 
 interface AudioControlsProps {
@@ -16,8 +16,9 @@ interface AudioControlsProps {
   onCancelSession: () => void;
   noiseSuppression: boolean;
   setNoiseSuppression: (enabled: boolean) => void;
-  translationProvider: 'google' | 'gemini';
+  translationProvider: 'google' | 'gemini' | 'openai';
   geminiApiKey?: string;
+  openAiApiKey?: string;
   onOpenSettings: () => void;
 }
 
@@ -46,11 +47,16 @@ export default function AudioControls({
   setNoiseSuppression,
   translationProvider,
   geminiApiKey,
+  openAiApiKey,
   onOpenSettings
 }: AudioControlsProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  
   const isGeminiActive = translationProvider === 'gemini';
+  const isOpenAiActive = translationProvider === 'openai';
+  
   const hasGeminiKey = Boolean(geminiApiKey || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY));
+  const hasOpenAiKey = Boolean(openAiApiKey || (import.meta.env && import.meta.env.VITE_OPENAI_API_KEY));
 
   // Audio Equalizer Visualizer animation loop with safety guards
   useEffect(() => {
@@ -268,15 +274,19 @@ export default function AudioControls({
             style={{
               padding: '5px 10px',
               fontSize: '0.75rem',
-              color: isGeminiActive ? (hasGeminiKey ? '#818cf8' : '#f59e0b') : '#38bdf8',
-              borderColor: isGeminiActive ? (hasGeminiKey ? 'rgba(129, 140, 248, 0.4)' : 'rgba(245, 158, 11, 0.4)') : 'rgba(56, 189, 248, 0.3)',
-              background: isGeminiActive ? (hasGeminiKey ? 'rgba(99, 102, 241, 0.12)' : 'rgba(245, 158, 11, 0.1)') : undefined,
+              color: isOpenAiActive ? (hasOpenAiKey ? '#10b981' : '#f59e0b') : (isGeminiActive ? (hasGeminiKey ? '#818cf8' : '#f59e0b') : '#38bdf8'),
+              borderColor: isOpenAiActive ? (hasOpenAiKey ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)') : (isGeminiActive ? (hasGeminiKey ? 'rgba(129, 140, 248, 0.4)' : 'rgba(245, 158, 11, 0.4)') : 'rgba(56, 189, 248, 0.3)'),
+              background: isOpenAiActive ? (hasOpenAiKey ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.1)') : (isGeminiActive ? (hasGeminiKey ? 'rgba(99, 102, 241, 0.12)' : 'rgba(245, 158, 11, 0.1)') : undefined),
               whiteSpace: 'nowrap'
             }}
-            title={isGeminiActive ? (hasGeminiKey ? 'Using Gemini LLM for translation' : 'No Gemini API Key found. Falling back to Google Translate. Click to enter key.') : 'Click to change Translation Provider in Settings'}
+            title="Click to change Translation Provider in Settings"
           >
-            <Sparkles size={13} color={isGeminiActive ? (hasGeminiKey ? '#818cf8' : '#f59e0b') : '#38bdf8'} />
-            {isGeminiActive ? (hasGeminiKey ? 'Gemini AI ✨' : 'Gemini (No Key → Fallback)') : 'Google Translate'}
+            {isOpenAiActive ? (
+              <Bot size={13} color={hasOpenAiKey ? '#10b981' : '#f59e0b'} />
+            ) : (
+              <Sparkles size={13} color={isGeminiActive ? (hasGeminiKey ? '#818cf8' : '#f59e0b') : '#38bdf8'} />
+            )}
+            {isOpenAiActive ? (hasOpenAiKey ? 'OpenAI GPT 🤖' : 'OpenAI (No Key → Fallback)') : isGeminiActive ? (hasGeminiKey ? 'Gemini AI ✨' : 'Gemini (No Key → Fallback)') : 'Google Translate'}
           </button>
 
           {/* Switch Course */}

@@ -181,19 +181,88 @@ export async function translateWithGemini(
 }
 
 /**
+ * Translate using OpenAI GPT Chat Completions REST API
+ */
+export async function translateWithOpenAI(
+  englishText: string,
+  detectedTerms: CSTerm[] = [],
+  apiKey?: string,
+  model: string = 'gpt-4o-mini'
+): Promise<string | null> {
+  const key = apiKey || (import.meta.env ? import.meta.env.VITE_OPENAI_API_KEY : '');
+  if (!key) {
+    console.warn('OpenAI API key is not configured. Falling back to standard Google Translate...');
+    return null;
+  }
+
+  try {
+    const termsContext = detectedTerms.length > 0
+      ? `Custom Glossary Context: ${detectedTerms.map(t => `${t.term} -> ${t.chinese}`).join('; ')}\n\n`
+      : '';
+
+    const payload = {
+      model: model || 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: GEMINI_TRANSLATION_SYSTEM_PROMPT },
+        { role: 'user', content: `${termsContext}Lecture Text to Translate:\n"${englishText.trim()}"` }
+      ],
+      temperature: 0.2,
+      max_tokens: 400
+    };
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key.trim()}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const rawText = data?.choices?.[0]?.message?.content;
+      if (rawText && typeof rawText === 'string' && rawText.trim()) {
+        const cleaned = rawText.trim().replace(/^["']|["']$/g, '');
+        return applyCSTermPreservation(cleaned, detectedTerms);
+      }
+    } else {
+      console.warn('OpenAI API request returned error status:', res.status);
+    }
+  } catch (e) {
+    console.warn('Failed to translate with OpenAI API:', e);
+  }
+  return null;
+}
+
+/**
  * Translate English text to Chinese using multi-layer online API + term preservation
  */
 export async function fetchOnlineTranslation(
   englishText: string,
   customGlossary: CSTerm[] = [],
-  provider: 'google' | 'gemini' = 'google',
-  geminiApiKey?: string
+  provider: 'google' | 'gemini' | 'openai' = 'google',
+  geminiApiKey?: string,
+  openAiApiKey?: string,
+  openAiModel?: string
 ): Promise<TranslationResult> {
   if (!englishText || !englishText.trim()) {
     return { original: '', chinese: '', detectedTerms: [] };
   }
 
   const detectedTerms = matchCSTerms(englishText, customGlossary);
+
+  // 0. OpenAI GPT Translation (If selected)
+  if (provider === 'openai') {
+    const openAiCn = await translateWithOpenAI(englishText, detectedTerms, openAiApiKey, openAiModel);
+    if (openAiCn) {
+      return {
+        original: englishText,
+        chinese: openAiCn,
+        detectedTerms
+      };
+    }
+  }
 
   // 0. Google Gemini AI Translation (If selected)
   if (provider === 'gemini') {

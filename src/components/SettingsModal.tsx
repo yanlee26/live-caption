@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Settings, Type, Layout, Languages, Sparkles, Key, ExternalLink } from 'lucide-react';
+import { X, Settings, Type, Layout, Languages, Sparkles, Key, ExternalLink, Bot } from 'lucide-react';
 
 interface SettingsModalProps {
   fontSize: number;
@@ -8,10 +8,14 @@ interface SettingsModalProps {
   setLayoutOrder: (order: 'en-top' | 'cn-top') => void;
   speechLang: string;
   setSpeechLang: (lang: string) => void;
-  translationProvider: 'google' | 'gemini';
-  setTranslationProvider: (provider: 'google' | 'gemini') => void;
+  translationProvider: 'google' | 'gemini' | 'openai';
+  setTranslationProvider: (provider: 'google' | 'gemini' | 'openai') => void;
   geminiApiKey: string;
   setGeminiApiKey: (key: string) => void;
+  openAiApiKey: string;
+  setOpenAiApiKey: (key: string) => void;
+  openAiModel: string;
+  setOpenAiModel: (model: string) => void;
   onClose: () => void;
 }
 
@@ -26,6 +30,10 @@ export default function SettingsModal({
   setTranslationProvider,
   geminiApiKey,
   setGeminiApiKey,
+  openAiApiKey,
+  setOpenAiApiKey,
+  openAiModel,
+  setOpenAiModel,
   onClose
 }: SettingsModalProps) {
   return (
@@ -42,7 +50,7 @@ export default function SettingsModal({
     }}>
       <div className="glass-panel animate-float-up" style={{
         width: '100%',
-        maxWidth: '560px',
+        maxWidth: '580px',
         maxHeight: '90vh',
         overflowY: 'auto',
         padding: '28px',
@@ -77,44 +85,66 @@ export default function SettingsModal({
             <Sparkles size={18} color="#38bdf8" /> Translation Engine Provider
           </label>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+            {/* Google Translate */}
             <button
               onClick={() => setTranslationProvider('google')}
               className={translationProvider === 'google' ? 'btn-primary' : 'btn-secondary'}
               style={{
-                padding: '12px',
-                fontSize: '0.83rem',
+                padding: '10px 8px',
+                fontSize: '0.78rem',
                 flexDirection: 'column',
                 alignItems: 'flex-start',
-                gap: '4px',
+                gap: '3px',
                 borderColor: translationProvider === 'google' ? '#38bdf8' : 'var(--border-glass)'
               }}
             >
-              <strong style={{ fontSize: '0.88rem' }}>Google Translate</strong>
-              <span style={{ fontSize: '0.72rem', opacity: 0.85 }}>Standard Free API (Fast)</span>
+              <strong style={{ fontSize: '0.82rem' }}>Google Translate</strong>
+              <span style={{ fontSize: '0.68rem', opacity: 0.8 }}>Standard Free</span>
             </button>
 
+            {/* Google Gemini AI */}
             <button
               onClick={() => setTranslationProvider('gemini')}
               className={translationProvider === 'gemini' ? 'btn-primary' : 'btn-secondary'}
               style={{
-                padding: '12px',
-                fontSize: '0.83rem',
+                padding: '10px 8px',
+                fontSize: '0.78rem',
                 flexDirection: 'column',
                 alignItems: 'flex-start',
-                gap: '4px',
-                borderColor: translationProvider === 'gemini' ? '#38bdf8' : 'var(--border-glass)',
+                gap: '3px',
+                borderColor: translationProvider === 'gemini' ? '#818cf8' : 'var(--border-glass)',
                 background: translationProvider === 'gemini' ? 'linear-gradient(135deg, #0284c7 0%, #6366f1 100%)' : undefined
               }}
             >
-              <strong style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Google Gemini AI ✨
+              <strong style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                Google Gemini ✨
               </strong>
-              <span style={{ fontSize: '0.72rem', opacity: 0.85 }}>LLM Context-Aware Academic Translation</span>
+              <span style={{ fontSize: '0.68rem', opacity: 0.85 }}>Gemini 2.0 LLM</span>
+            </button>
+
+            {/* OpenAI GPT */}
+            <button
+              onClick={() => setTranslationProvider('openai')}
+              className={translationProvider === 'openai' ? 'btn-primary' : 'btn-secondary'}
+              style={{
+                padding: '10px 8px',
+                fontSize: '0.78rem',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '3px',
+                borderColor: translationProvider === 'openai' ? '#10b981' : 'var(--border-glass)',
+                background: translationProvider === 'openai' ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)' : undefined
+              }}
+            >
+              <strong style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                OpenAI GPT 🤖
+              </strong>
+              <span style={{ fontSize: '0.68rem', opacity: 0.85 }}>GPT-4o LLM</span>
             </button>
           </div>
 
-          {/* Gemini API Key input if Gemini is selected */}
+          {/* Gemini API Key Input */}
           {translationProvider === 'gemini' && (
             <div className="animate-float-up" style={{ marginTop: '12px', padding: '12px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -127,7 +157,7 @@ export default function SettingsModal({
                   rel="noreferrer"
                   style={{ fontSize: '0.72rem', color: '#38bdf8', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                 >
-                  Get Free Key at Google AI Studio <ExternalLink size={10} />
+                  Get Key at Google AI Studio <ExternalLink size={10} />
                 </a>
               </div>
               <input
@@ -139,7 +169,54 @@ export default function SettingsModal({
                 style={{ width: '100%', padding: '8px 12px', fontSize: '0.82rem', color: 'var(--text-primary)', outline: 'none' }}
               />
               <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '6px' }}>
-                Powered by Gemini LLM system prompt instructions in <code>src/prompts/geminiTranslationPrompt.md</code>. Fallbacks to Google Translate if key is invalid.
+                Powered by Gemini LLM system prompt instructions. Fallbacks to Google Translate if key is invalid.
+              </p>
+            </div>
+          )}
+
+          {/* OpenAI API Key Input & Model Picker */}
+          {translationProvider === 'openai' && (
+            <div className="animate-float-up" style={{ marginTop: '12px', padding: '12px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Key size={14} /> OpenAI API Key
+                </label>
+                <a
+                  href="https://platform.openai.com/api-keys"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: '0.72rem', color: '#10b981', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                >
+                  Get Key at OpenAI Platform <ExternalLink size={10} />
+                </a>
+              </div>
+              <input
+                type="password"
+                placeholder="sk-proj-... (or set VITE_OPENAI_API_KEY in .env)"
+                value={openAiApiKey}
+                onChange={(e) => setOpenAiApiKey(e.target.value)}
+                className="glass-card"
+                style={{ width: '100%', padding: '8px 12px', fontSize: '0.82rem', color: 'var(--text-primary)', outline: 'none', marginBottom: '10px' }}
+              />
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Bot size={13} color="#10b981" /> OpenAI Model:
+                </label>
+                <select
+                  value={openAiModel}
+                  onChange={(e) => setOpenAiModel(e.target.value)}
+                  className="glass-card"
+                  style={{ padding: '6px 10px', fontSize: '0.78rem', color: 'var(--text-primary)', outline: 'none', width: '200px' }}
+                >
+                  <option value="gpt-4o-mini">gpt-4o-mini (Fast & Recommended)</option>
+                  <option value="gpt-4o">gpt-4o (High Accuracy)</option>
+                  <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                </select>
+              </div>
+
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                Uses OpenAI Chat Completions REST API with academic prompt instructions. Fallbacks to Google Translate if key is missing.
               </p>
             </div>
           )}

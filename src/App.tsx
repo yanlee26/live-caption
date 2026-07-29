@@ -79,8 +79,10 @@ export default function App() {
   const [fontSize, setFontSize] = useState<number>(savedSettings.fontSize);
   const [layoutOrder, setLayoutOrder] = useState<'en-top' | 'cn-top'>(savedSettings.layoutOrder);
   const [speechLang, setSpeechLang] = useState<string>(savedSettings.speechLang);
-  const [translationProvider, setTranslationProvider] = useState<'google' | 'gemini'>(savedSettings.translationProvider || 'google');
+  const [translationProvider, setTranslationProvider] = useState<'google' | 'gemini' | 'openai'>(savedSettings.translationProvider || 'google');
   const [geminiApiKey, setGeminiApiKey] = useState<string>(savedSettings.geminiApiKey || '');
+  const [openAiApiKey, setOpenAiApiKey] = useState<string>(savedSettings.openAiApiKey || '');
+  const [openAiModel, setOpenAiModel] = useState<string>(savedSettings.openAiModel || 'gpt-4o-mini');
 
   // 2-Hour Lecture Recording Session Controls
   const MAX_LECTURE_SECONDS = 7200; // 2 Hours
@@ -181,8 +183,8 @@ export default function App() {
   useEffect(() => { saveTranscripts(transcriptHistory, user?.id); }, [transcriptHistory, user?.id]);
   useEffect(() => { saveCustomGlossary(customGlossary, user?.id); }, [customGlossary, user?.id]);
   useEffect(() => {
-    saveAppSettings({ fontSize, layoutOrder, theme, speechLang, translationProvider, geminiApiKey }, user?.id);
-  }, [fontSize, layoutOrder, theme, speechLang, translationProvider, geminiApiKey, user?.id]);
+    saveAppSettings({ fontSize, layoutOrder, theme, speechLang, translationProvider, geminiApiKey, openAiApiKey, openAiModel }, user?.id);
+  }, [fontSize, layoutOrder, theme, speechLang, translationProvider, geminiApiKey, openAiApiKey, openAiModel, user?.id]);
 
   // Update current caption and initial sentence when activeCourse changes
   useEffect(() => {
@@ -284,6 +286,10 @@ export default function App() {
         setLayoutOrder(remoteSettings.layoutOrder);
         setTheme(remoteSettings.theme);
         setSpeechLang(remoteSettings.speechLang);
+        if (remoteSettings.translationProvider) setTranslationProvider(remoteSettings.translationProvider);
+        if (remoteSettings.geminiApiKey) setGeminiApiKey(remoteSettings.geminiApiKey);
+        if (remoteSettings.openAiApiKey) setOpenAiApiKey(remoteSettings.openAiApiKey);
+        if (remoteSettings.openAiModel) setOpenAiModel(remoteSettings.openAiModel);
       }
     })();
     return () => { isMounted = false; };
@@ -364,7 +370,7 @@ export default function App() {
 
         setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, captionObj));
 
-        fetchOnlineTranslation(seg, customGlossary, translationProvider, geminiApiKey).then(onlineRes => {
+        fetchOnlineTranslation(seg, customGlossary, translationProvider, geminiApiKey, openAiApiKey, openAiModel).then(onlineRes => {
           if (onlineRes && onlineRes.chinese) {
             setTranscriptHistory(prev => prev.map(item =>
               item.id === captionObj.id ? { ...item, chinese: onlineRes.chinese, detectedTerms: onlineRes.detectedTerms } : item
@@ -400,7 +406,7 @@ export default function App() {
         setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, activeCaptionObj));
       }
 
-      fetchOnlineTranslation(activeSegment, customGlossary, translationProvider, geminiApiKey).then(onlineResult => {
+      fetchOnlineTranslation(activeSegment, customGlossary, translationProvider, geminiApiKey, openAiApiKey, openAiModel).then(onlineResult => {
         if (onlineResult && onlineResult.chinese && latestSpeechTextRef.current === activeSegment.trim()) {
           const upgradedObj: TranscriptSentence = {
             ...activeCaptionObj,
@@ -591,6 +597,7 @@ export default function App() {
             setNoiseSuppression={setNoiseSuppression}
             translationProvider={translationProvider}
             geminiApiKey={geminiApiKey}
+            openAiApiKey={openAiApiKey}
             onOpenSettings={() => setShowSettingsModal(true)}
           />
         </ErrorBoundary>
@@ -726,6 +733,10 @@ export default function App() {
           setTranslationProvider={setTranslationProvider}
           geminiApiKey={geminiApiKey}
           setGeminiApiKey={setGeminiApiKey}
+          openAiApiKey={openAiApiKey}
+          setOpenAiApiKey={setOpenAiApiKey}
+          openAiModel={openAiModel}
+          setOpenAiModel={setOpenAiModel}
           onClose={() => setShowSettingsModal(false)}
         />
       )}
