@@ -138,19 +138,16 @@ export default function GlossaryManager({
       <div className="glass-panel" style={{ padding: '24px' }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '16px', marginBottom: '20px' }}>
           <div>
-            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
               <BookOpen size={20} color="#38bdf8" /> Academic Course Term Dictionary
             </h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Universal Academic Vocabulary + Custom Term protection for Science, Engineering, Business, Medicine, Law & Arts courses
-            </p>
           </div>
 
           {/* Action Buttons Right */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+            <span style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 600, whiteSpace: 'nowrap' }}>
               <Database size={13} /> API Data Engine ({total} Terms)
             </span>
 
@@ -166,7 +163,8 @@ export default function GlossaryManager({
                 color: syncDone ? '#10b981' : '#38bdf8',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '6px',
+                whiteSpace: 'nowrap'
               }}
               title="Sync all built-in and custom academic terms to backend cloud database"
             >
@@ -183,7 +181,7 @@ export default function GlossaryManager({
             <button
               onClick={() => setShowAddForm(!showAddForm)}
               className="btn-primary"
-              style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+              style={{ padding: '8px 16px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
             >
               <Plus size={16} /> {showAddForm ? 'Cancel' : 'Add Custom Course Term'}
             </button>
