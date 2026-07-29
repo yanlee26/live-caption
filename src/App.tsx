@@ -79,12 +79,74 @@ export default function App() {
   const [fontSize, setFontSize] = useState<number>(savedSettings.fontSize);
   const [layoutOrder, setLayoutOrder] = useState<'en-top' | 'cn-top'>(savedSettings.layoutOrder);
   const [speechLang, setSpeechLang] = useState<string>(savedSettings.speechLang);
+  const [translationProvider, setTranslationProvider] = useState<'google' | 'gemini'>(savedSettings.translationProvider || 'google');
+  const [geminiApiKey, setGeminiApiKey] = useState<string>(savedSettings.geminiApiKey || '');
+
+  // 2-Hour Lecture Recording Session Controls
+  const MAX_LECTURE_SECONDS = 7200; // 2 Hours
+  const [recordingState, setRecordingState] = useState<'idle' | 'recording' | 'paused'>('idle');
+  const [sessionSeconds, setSessionSeconds] = useState<number>(0);
 
   // Speech Recognition & Auto-Reconnect Refs
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef<boolean>(false);
   const latestSpeechTextRef = useRef<string>('');
   const processedResultIndexesRef = useRef<Set<number>>(new Set());
+
+  // 2-Hour Session Countdown & Auto-Stop Timer
+  useEffect(() => {
+    let interval: any = null;
+    if (recordingState === 'recording') {
+      interval = setInterval(() => {
+        setSessionSeconds(prev => {
+          if (prev >= MAX_LECTURE_SECONDS - 1) {
+            handleCancelSession();
+            alert('Maximum 2-hour lecture session duration reached. Live recording stopped.');
+            return 0;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [recordingState]);
+
+  // Session Control Handlers
+  const handleStartSession = () => {
+    handleStartListening();
+    setRecordingState('recording');
+  };
+
+  const handlePauseSession = () => {
+    handleStopListening();
+    setRecordingState('paused');
+  };
+
+  const handleResumeSession = () => {
+    handleStartListening();
+    setRecordingState('recording');
+  };
+
+  const handleCancelSession = () => {
+    handleStopListening();
+    setRecordingState('idle');
+    setSessionSeconds(0);
+    if (activeCourse) {
+      setCurrentCaption({
+        id: `init-${activeCourse.id}`,
+        time: 'Live',
+        speaker: activeCourse.instructor || 'Course Instructor',
+        english: `Translation cancelled. Select "${activeCourse.code}" and click "Start Live Microphone" to begin a new session.`,
+        chinese: `同传已取消。选择 ${activeCourse.code} 课程并点击“启动实时麦克风”即可重新开始。`,
+        detectedTerms: matchCSTerms(`Selected ${activeCourse.code}: ${activeCourse.title}`, customGlossary),
+        bookmarked: false,
+        courseId: activeCourse.id,
+        userId: user?.id
+      });
+    }
+  };
 
   // Deduplication Helper: Appends caption object to transcriptHistory without duplicate lines
   const appendDeduplicatedTranscript = (list: TranscriptSentence[], newItem: TranscriptSentence): TranscriptSentence[] => {
@@ -119,8 +181,8 @@ export default function App() {
   useEffect(() => { saveTranscripts(transcriptHistory, user?.id); }, [transcriptHistory, user?.id]);
   useEffect(() => { saveCustomGlossary(customGlossary, user?.id); }, [customGlossary, user?.id]);
   useEffect(() => {
-    saveAppSettings({ fontSize, layoutOrder, theme, speechLang }, user?.id);
-  }, [fontSize, layoutOrder, theme, speechLang, user?.id]);
+    saveAppSettings({ fontSize, layoutOrder, theme, speechLang, translationProvider, geminiApiKey }, user?.id);
+  }, [fontSize, layoutOrder, theme, speechLang, translationProvider, geminiApiKey, user?.id]);
 
   // Update current caption and initial sentence when activeCourse changes
   useEffect(() => {
@@ -302,7 +364,7 @@ export default function App() {
 
         setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, captionObj));
 
-        fetchOnlineTranslation(seg, customGlossary).then(onlineRes => {
+        fetchOnlineTranslation(seg, customGlossary, translationProvider, geminiApiKey).then(onlineRes => {
           if (onlineRes && onlineRes.chinese) {
             setTranscriptHistory(prev => prev.map(item =>
               item.id === captionObj.id ? { ...item, chinese: onlineRes.chinese, detectedTerms: onlineRes.detectedTerms } : item
@@ -338,7 +400,7 @@ export default function App() {
         setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, activeCaptionObj));
       }
 
-      fetchOnlineTranslation(activeSegment, customGlossary).then(onlineResult => {
+      fetchOnlineTranslation(activeSegment, customGlossary, translationProvider, geminiApiKey).then(onlineResult => {
         if (onlineResult && onlineResult.chinese && latestSpeechTextRef.current === activeSegment.trim()) {
           const upgradedObj: TranscriptSentence = {
             ...activeCaptionObj,
@@ -519,13 +581,16 @@ export default function App() {
             onOpenAuthModal={() => setShowAuthModal(true)}
             activeCourse={activeCourse}
             onOpenCourseSelector={() => setShowCourseSelectorModal(true)}
-            isListening={isListening}
-            onStartListening={handleStartListening}
-            onStopListening={handleStopListening}
-            speechRate={speechRate}
-            setSpeechRate={setSpeechRate}
+            recordingState={recordingState}
+            sessionSeconds={sessionSeconds}
+            onStartSession={handleStartSession}
+            onPauseSession={handlePauseSession}
+            onResumeSession={handleResumeSession}
+            onCancelSession={handleCancelSession}
             noiseSuppression={noiseSuppression}
             setNoiseSuppression={setNoiseSuppression}
+            translationProvider={translationProvider}
+            onOpenSettings={() => setShowSettingsModal(true)}
           />
         </ErrorBoundary>
 
@@ -656,6 +721,10 @@ export default function App() {
           setLayoutOrder={setLayoutOrder}
           speechLang={speechLang}
           setSpeechLang={setSpeechLang}
+          translationProvider={translationProvider}
+          setTranslationProvider={setTranslationProvider}
+          geminiApiKey={geminiApiKey}
+          setGeminiApiKey={setGeminiApiKey}
           onClose={() => setShowSettingsModal(false)}
         />
       )}

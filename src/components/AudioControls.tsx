@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { calculateWeekNumber } from '../utils/dateUtils';
-import { Mic, MicOff, ShieldCheck, Activity, GraduationCap } from 'lucide-react';
+import { Mic, Pause, Play, XCircle, ShieldCheck, Activity, GraduationCap, Sparkles, Clock } from 'lucide-react';
 import { Course, UserProfile } from '../types';
 
 interface AudioControlsProps {
@@ -8,13 +8,26 @@ interface AudioControlsProps {
   onOpenAuthModal: () => void;
   activeCourse: Course | null;
   onOpenCourseSelector: () => void;
-  isListening: boolean;
-  onStartListening: () => void;
-  onStopListening: () => void;
-  speechRate: number;
-  setSpeechRate: (rate: number) => void;
+  recordingState: 'idle' | 'recording' | 'paused';
+  sessionSeconds: number;
+  onStartSession: () => void;
+  onPauseSession: () => void;
+  onResumeSession: () => void;
+  onCancelSession: () => void;
   noiseSuppression: boolean;
   setNoiseSuppression: (enabled: boolean) => void;
+  translationProvider: 'google' | 'gemini';
+  onOpenSettings: () => void;
+}
+
+const MAX_LECTURE_SECONDS = 7200; // 2 Hours
+
+function formatTimer(totalSec: number): string {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
 export default function AudioControls({
@@ -22,11 +35,16 @@ export default function AudioControls({
   onOpenAuthModal,
   activeCourse,
   onOpenCourseSelector,
-  isListening,
-  onStartListening,
-  onStopListening,
+  recordingState,
+  sessionSeconds,
+  onStartSession,
+  onPauseSession,
+  onResumeSession,
+  onCancelSession,
   noiseSuppression,
-  setNoiseSuppression
+  setNoiseSuppression,
+  translationProvider,
+  onOpenSettings
 }: AudioControlsProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -46,7 +64,7 @@ export default function AudioControls({
 
         const barCount = 28;
         const barWidth = Math.max(2, (width / barCount) - 3);
-        const isActive = isListening;
+        const isActive = recordingState === 'recording';
 
         for (let i = 0; i < barCount; i++) {
           let barHeight = 4;
@@ -82,49 +100,82 @@ export default function AudioControls({
     return () => {
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
-  }, [isListening]);
+  }, [recordingState]);
+
+  const progressPercent = Math.min(100, (sessionSeconds / MAX_LECTURE_SECONDS) * 100);
 
   return (
     <div className="glass-panel" style={{ borderRadius: 0, borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '16px 24px', background: 'rgba(15, 23, 42, 0.65)' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
         
-        {/* Left Side: Mic Button & Active Course Details */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        {/* Left Side: Mic Buttons & Recording Session Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
           
-          <button
-            onClick={() => {
-              if (!user) {
-                onOpenAuthModal();
-              } else if (!activeCourse) {
-                onOpenCourseSelector();
-              } else {
-                if (isListening) onStopListening();
-                else onStartListening();
-              }
-            }}
-            className={isListening ? 'btn-danger pulsing-recording' : 'btn-primary'}
-            style={{ padding: '12px 24px', fontSize: '0.95rem' }}
-          >
-            {isListening ? (
-              <>
-                <MicOff size={20} /> Stop Live Mic
-              </>
-            ) : (
-              <>
-                <Mic size={20} /> Start Live Microphone
-              </>
-            )}
-          </button>
+          {recordingState === 'idle' && (
+            <button
+              onClick={() => {
+                if (!user) {
+                  onOpenAuthModal();
+                } else if (!activeCourse) {
+                  onOpenCourseSelector();
+                } else {
+                  onStartSession();
+                }
+              }}
+              className="btn-primary"
+              style={{ padding: '12px 22px', fontSize: '0.92rem' }}
+            >
+              <Mic size={18} /> Start Live Microphone
+            </button>
+          )}
 
-          {/* Active Course & Auth Status Indicator */}
+          {recordingState === 'recording' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={onPauseSession}
+                className="btn-secondary pulsing-recording"
+                style={{ padding: '10px 18px', fontSize: '0.88rem', borderColor: '#f59e0b', color: '#f59e0b' }}
+              >
+                <Pause size={16} /> Pause Recording
+              </button>
+              <button
+                onClick={onCancelSession}
+                className="btn-danger"
+                style={{ padding: '10px 16px', fontSize: '0.88rem' }}
+              >
+                <XCircle size={16} /> Cancel Session
+              </button>
+            </div>
+          )}
+
+          {recordingState === 'paused' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={onResumeSession}
+                className="btn-primary"
+                style={{ padding: '10px 18px', fontSize: '0.88rem', background: '#10b981' }}
+              >
+                <Play size={16} /> Resume Recording
+              </button>
+              <button
+                onClick={onCancelSession}
+                className="btn-danger"
+                style={{ padding: '10px 16px', fontSize: '0.88rem' }}
+              >
+                <XCircle size={16} /> Cancel Session
+              </button>
+            </div>
+          )}
+
+          {/* Active Course & 2-Hour Timer Indicator */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{
                 width: '10px',
                 height: '10px',
                 borderRadius: '50%',
-                backgroundColor: isListening ? '#10b981' : (user ? (activeCourse ? '#38bdf8' : '#f59e0b') : '#ef4444'),
-                boxShadow: isListening ? '0 0 10px #10b981' : 'none'
+                backgroundColor: recordingState === 'recording' ? '#10b981' : (recordingState === 'paused' ? '#f59e0b' : (user ? (activeCourse ? '#38bdf8' : '#f59e0b') : '#ef4444')),
+                boxShadow: recordingState === 'recording' ? '0 0 10px #10b981' : 'none'
               }} />
               <span style={{ fontWeight: 600, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                 {!user ? 'Visitor Mode (Not Signed In)' : (activeCourse ? `${activeCourse.code || ''}: ${activeCourse.title || ''}` : 'No Course Selected')}
@@ -142,35 +193,75 @@ export default function AudioControls({
                 )}
               </span>
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              {!user ? (
-                <span onClick={onOpenAuthModal} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline' }}>
-                  Please sign in with Google to start live lecture captioning →
-                </span>
-              ) : activeCourse ? (
-                isListening ? (
-                  <>Listening to {activeCourse.instructor || 'Instructor'}'s lecture voice...</>
+
+            {/* Timer & Session Status */}
+            <div style={{ marginTop: '3px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}>
+                {!user ? (
+                  <span onClick={onOpenAuthModal} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline' }}>
+                    Please sign in with Google to start live lecture captioning →
+                  </span>
+                ) : activeCourse ? (
+                  recordingState === 'recording' ? (
+                    <>Listening to {activeCourse.instructor || 'Instructor'}'s lecture voice...</>
+                  ) : recordingState === 'paused' ? (
+                    <span style={{ color: '#f59e0b', fontWeight: 600 }}>Lecture recording paused. Click "Resume" to continue.</span>
+                  ) : (
+                    <>Course selected. Click "Start Live Microphone" (Max 2h session).</>
+                  )
                 ) : (
-                  <>Course selected. Click "Start Live Microphone" to begin captioning.</>
-                )
-              ) : (
-                <span onClick={onOpenCourseSelector} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline' }}>
-                  Please choose a lecture course first →
-                </span>
+                  <span onClick={onOpenCourseSelector} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline' }}>
+                    Please choose a lecture course first →
+                  </span>
+                )}
+              </p>
+
+              {/* 2-Hour Timer Display */}
+              {recordingState !== 'idle' && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '1px 8px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid var(--border-glass)' }}>
+                  <Clock size={12} color={recordingState === 'recording' ? '#10b981' : '#f59e0b'} />
+                  <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: recordingState === 'recording' ? '#10b981' : '#f59e0b' }}>
+                    {formatTimer(sessionSeconds)} / 02:00:00
+                  </span>
+                </div>
               )}
-            </p>
+            </div>
+
+            {/* Session Progress Bar */}
+            {recordingState !== 'idle' && (
+              <div style={{ width: '100%', height: '3px', borderRadius: '2px', background: 'rgba(255,255,255,0.1)', marginTop: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${progressPercent}%`, height: '100%', background: recordingState === 'recording' ? '#10b981' : '#f59e0b', transition: 'width 0.5s ease' }} />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Center: Audio Waveform Equalizer Canvas */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1', maxWidth: '320px', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1', maxWidth: '300px', justifyContent: 'center' }}>
           <Activity size={18} color="#38bdf8" />
-          <canvas ref={canvasRef} width={260} height={36} style={{ borderRadius: '8px' }} />
+          <canvas ref={canvasRef} width={240} height={36} style={{ borderRadius: '8px' }} />
         </div>
 
-        {/* Right Side: Options & Sensitivity Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        {/* Right Side: Translation Provider Tag & Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           
+          {/* Translation Provider Badge */}
+          <button
+            onClick={onOpenSettings}
+            className="btn-secondary"
+            style={{
+              padding: '6px 12px',
+              fontSize: '0.78rem',
+              color: translationProvider === 'gemini' ? '#818cf8' : '#38bdf8',
+              borderColor: translationProvider === 'gemini' ? 'rgba(129, 140, 248, 0.4)' : 'rgba(56, 189, 248, 0.3)',
+              background: translationProvider === 'gemini' ? 'rgba(99, 102, 241, 0.12)' : undefined
+            }}
+            title="Click to change Translation Provider in Settings"
+          >
+            <Sparkles size={14} color={translationProvider === 'gemini' ? '#818cf8' : '#38bdf8'} />
+            {translationProvider === 'gemini' ? 'Gemini AI (LLM)' : 'Google Translate'}
+          </button>
+
           {/* Change Course Link */}
           <button
             onClick={onOpenCourseSelector}

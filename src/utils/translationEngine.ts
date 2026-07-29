@@ -1,5 +1,6 @@
 import { DEFAULT_CS_GLOSSARY } from '../data/csGlossary';
 import { CSTerm, TranslationResult } from '../types';
+import { GEMINI_TRANSLATION_SYSTEM_PROMPT } from './geminiPrompt';
 
 // Extended Vocabulary & Phrasal Dictionary for Offline Chinese Translation Engine
 const OFFLINE_DICTIONARY: Record<string, string> = {
@@ -121,14 +122,90 @@ export function translateWithTermPreservation(englishText: string, customGlossar
 }
 
 /**
+ * Translate using Google Gemini LLM REST API
+ */
+export async function translateWithGemini(
+  englishText: string,
+  detectedTerms: CSTerm[] = [],
+  apiKey?: string
+): Promise<string | null> {
+  const key = apiKey || (import.meta.env ? import.meta.env.VITE_GEMINI_API_KEY : '');
+  if (!key) {
+    console.warn('Gemini API key is not configured. Falling back to standard Google Translate...');
+    return null;
+  }
+
+  try {
+    const termsContext = detectedTerms.length > 0
+      ? `Custom Glossary Context: ${detectedTerms.map(t => `${t.term} -> ${t.chinese}`).join('; ')}\n\n`
+      : '';
+
+    const payload = {
+      system_instruction: {
+        parts: [{ text: GEMINI_TRANSLATION_SYSTEM_PROMPT }]
+      },
+      contents: [
+        {
+          parts: [
+            { text: `${termsContext}Lecture Text to Translate:\n"${englishText.trim()}"` }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 400
+      }
+    };
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key.trim())}`;
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (rawText && typeof rawText === 'string' && rawText.trim()) {
+        const cleaned = rawText.trim().replace(/^["']|["']$/g, '');
+        return applyCSTermPreservation(cleaned, detectedTerms);
+      }
+    } else {
+      console.warn('Gemini API request returned error status:', res.status);
+    }
+  } catch (e) {
+    console.warn('Failed to translate with Gemini API:', e);
+  }
+  return null;
+}
+
+/**
  * Translate English text to Chinese using multi-layer online API + term preservation
  */
-export async function fetchOnlineTranslation(englishText: string, customGlossary: CSTerm[] = []): Promise<TranslationResult> {
+export async function fetchOnlineTranslation(
+  englishText: string,
+  customGlossary: CSTerm[] = [],
+  provider: 'google' | 'gemini' = 'google',
+  geminiApiKey?: string
+): Promise<TranslationResult> {
   if (!englishText || !englishText.trim()) {
     return { original: '', chinese: '', detectedTerms: [] };
   }
 
   const detectedTerms = matchCSTerms(englishText, customGlossary);
+
+  // 0. Google Gemini AI Translation (If selected)
+  if (provider === 'gemini') {
+    const geminiCn = await translateWithGemini(englishText, detectedTerms, geminiApiKey);
+    if (geminiCn) {
+      return {
+        original: englishText,
+        chinese: geminiCn,
+        detectedTerms
+      };
+    }
+  }
 
   // 1. Google Translate GTX Free API (Fastest & most accurate English -> Chinese)
   try {

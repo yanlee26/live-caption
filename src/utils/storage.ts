@@ -15,13 +15,17 @@ export interface AppSettings {
   layoutOrder: 'en-top' | 'cn-top';
   theme: 'dark' | 'light';
   speechLang: string;
+  translationProvider: 'google' | 'gemini';
+  geminiApiKey: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   fontSize: 22,
   layoutOrder: 'en-top',
   theme: 'dark',
-  speechLang: 'en-US'
+  speechLang: 'en-US',
+  translationProvider: 'google',
+  geminiApiKey: ''
 };
 
 // --- Courses Storage ---
@@ -349,7 +353,9 @@ export async function fetchSettingsFromSupabase(userId: string): Promise<AppSett
       fontSize: data.font_size ?? DEFAULT_SETTINGS.fontSize,
       layoutOrder: data.layout_order ?? DEFAULT_SETTINGS.layoutOrder,
       theme: data.theme ?? DEFAULT_SETTINGS.theme,
-      speechLang: data.speech_lang ?? DEFAULT_SETTINGS.speechLang
+      speechLang: data.speech_lang ?? DEFAULT_SETTINGS.speechLang,
+      translationProvider: data.translation_provider ?? DEFAULT_SETTINGS.translationProvider,
+      geminiApiKey: data.gemini_api_key ?? DEFAULT_SETTINGS.geminiApiKey
     };
   } catch (e) {
     return null;
@@ -365,6 +371,8 @@ export async function syncSettingsToSupabase(settings: AppSettings, userId: stri
       layout_order: settings.layoutOrder,
       theme: settings.theme,
       speech_lang: settings.speechLang,
+      translation_provider: settings.translationProvider,
+      gemini_api_key: settings.geminiApiKey,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
 

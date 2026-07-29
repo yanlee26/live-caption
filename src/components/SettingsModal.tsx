@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Settings, Type, Layout, Languages } from 'lucide-react';
+import { X, Settings, Type, Layout, Languages, Sparkles, Key, ExternalLink } from 'lucide-react';
 
 interface SettingsModalProps {
   fontSize: number;
@@ -8,6 +8,10 @@ interface SettingsModalProps {
   setLayoutOrder: (order: 'en-top' | 'cn-top') => void;
   speechLang: string;
   setSpeechLang: (lang: string) => void;
+  translationProvider: 'google' | 'gemini';
+  setTranslationProvider: (provider: 'google' | 'gemini') => void;
+  geminiApiKey: string;
+  setGeminiApiKey: (key: string) => void;
   onClose: () => void;
 }
 
@@ -18,6 +22,10 @@ export default function SettingsModal({
   setLayoutOrder,
   speechLang,
   setSpeechLang,
+  translationProvider,
+  setTranslationProvider,
+  geminiApiKey,
+  setGeminiApiKey,
   onClose
 }: SettingsModalProps) {
   return (
@@ -34,7 +42,9 @@ export default function SettingsModal({
     }}>
       <div className="glass-panel animate-float-up" style={{
         width: '100%',
-        maxWidth: '520px',
+        maxWidth: '560px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
         padding: '28px',
         borderRadius: '24px',
         background: 'var(--bg-main)',
@@ -48,10 +58,10 @@ export default function SettingsModal({
             </div>
             <div>
               <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700 }}>
-                Caption Preferences & Display
+                Caption Preferences & Engine
               </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Customize font size, subtitle stack order, and speech options
+                Customize font size, stack order, and choose translation provider
               </p>
             </div>
           </div>
@@ -59,6 +69,80 @@ export default function SettingsModal({
           <button onClick={onClose} className="btn-secondary" style={{ padding: '8px', borderRadius: '50%' }}>
             <X size={18} />
           </button>
+        </div>
+
+        {/* Translation Provider Selector */}
+        <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '16px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-glass)' }}>
+          <label style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <Sparkles size={18} color="#38bdf8" /> Translation Engine Provider
+          </label>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <button
+              onClick={() => setTranslationProvider('google')}
+              className={translationProvider === 'google' ? 'btn-primary' : 'btn-secondary'}
+              style={{
+                padding: '12px',
+                fontSize: '0.83rem',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '4px',
+                borderColor: translationProvider === 'google' ? '#38bdf8' : 'var(--border-glass)'
+              }}
+            >
+              <strong style={{ fontSize: '0.88rem' }}>Google Translate</strong>
+              <span style={{ fontSize: '0.72rem', opacity: 0.85 }}>Standard Free API (Fast)</span>
+            </button>
+
+            <button
+              onClick={() => setTranslationProvider('gemini')}
+              className={translationProvider === 'gemini' ? 'btn-primary' : 'btn-secondary'}
+              style={{
+                padding: '12px',
+                fontSize: '0.83rem',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '4px',
+                borderColor: translationProvider === 'gemini' ? '#38bdf8' : 'var(--border-glass)',
+                background: translationProvider === 'gemini' ? 'linear-gradient(135deg, #0284c7 0%, #6366f1 100%)' : undefined
+              }}
+            >
+              <strong style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Google Gemini AI ✨
+              </strong>
+              <span style={{ fontSize: '0.72rem', opacity: 0.85 }}>LLM Context-Aware Academic Translation</span>
+            </button>
+          </div>
+
+          {/* Gemini API Key input if Gemini is selected */}
+          {translationProvider === 'gemini' && (
+            <div className="animate-float-up" style={{ marginTop: '12px', padding: '12px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Key size={14} /> Gemini API Key
+                </label>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: '0.72rem', color: '#38bdf8', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                >
+                  Get Free Key at Google AI Studio <ExternalLink size={10} />
+                </a>
+              </div>
+              <input
+                type="password"
+                placeholder="AIzaSy... (or set VITE_GEMINI_API_KEY in .env)"
+                value={geminiApiKey}
+                onChange={(e) => setGeminiApiKey(e.target.value)}
+                className="glass-card"
+                style={{ width: '100%', padding: '8px 12px', fontSize: '0.82rem', color: 'var(--text-primary)', outline: 'none' }}
+              />
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                Powered by Gemini LLM system prompt instructions in <code>src/prompts/geminiTranslationPrompt.md</code>. Fallbacks to Google Translate if key is invalid.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Font Size Slider */}
