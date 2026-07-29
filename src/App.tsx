@@ -383,6 +383,7 @@ export default function App() {
 
         setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, captionObj));
 
+        // For completed segments, call the selected LLM provider (Gemini / OpenAI) for high-accuracy translation
         fetchOnlineTranslation(seg, activeGlossary, activeProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineRes => {
           if (onlineRes && onlineRes.chinese) {
             setTranscriptHistory(prev => prev.map(item =>
@@ -419,7 +420,11 @@ export default function App() {
         setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, activeCaptionObj));
       }
 
-      fetchOnlineTranslation(activeSegment, activeGlossary, activeProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineResult => {
+      // For interim streaming text, use fast Google Translate preview.
+      // For final sentence results, use selected LLM provider (Gemini / OpenAI) to save API quota & prevent 429 rate limits.
+      const liveProvider = isFinal ? activeProvider : 'google';
+
+      fetchOnlineTranslation(activeSegment, activeGlossary, liveProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineResult => {
         if (onlineResult && onlineResult.chinese && latestSpeechTextRef.current === activeSegment.trim()) {
           const upgradedObj: TranscriptSentence = {
             ...activeCaptionObj,

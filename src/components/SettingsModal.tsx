@@ -96,51 +96,53 @@ export default function SettingsModal({
                 flexDirection: 'column',
                 alignItems: 'flex-start',
                 gap: '3px',
-                borderColor: translationProvider === 'google' ? '#38bdf8' : 'var(--border-glass)'
+                borderColor: '#38bdf8'
               }}
             >
               <strong style={{ fontSize: '0.82rem' }}>Google Translate</strong>
-              <span style={{ fontSize: '0.68rem', opacity: 0.8 }}>Standard Free</span>
+              <span style={{ fontSize: '0.68rem', opacity: 0.8 }}>Standard Free (Active)</span>
             </button>
 
-            {/* Google Gemini AI */}
+            {/* Google Gemini AI (Disabled) */}
             <button
-              onClick={() => setTranslationProvider('gemini')}
-              className={translationProvider === 'gemini' ? 'btn-primary' : 'btn-secondary'}
+              disabled
               style={{
                 padding: '10px 8px',
                 fontSize: '0.78rem',
                 flexDirection: 'column',
                 alignItems: 'flex-start',
                 gap: '3px',
-                borderColor: translationProvider === 'gemini' ? '#818cf8' : 'var(--border-glass)',
-                background: translationProvider === 'gemini' ? 'linear-gradient(135deg, #0284c7 0%, #6366f1 100%)' : undefined
+                opacity: 0.4,
+                cursor: 'not-allowed',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px dashed var(--border-glass)'
               }}
             >
               <strong style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '3px' }}>
                 Google Gemini ✨
               </strong>
-              <span style={{ fontSize: '0.68rem', opacity: 0.85 }}>Gemini 2.0 LLM</span>
+              <span style={{ fontSize: '0.68rem', opacity: 0.7 }}>Disabled (Later)</span>
             </button>
 
-            {/* OpenAI GPT */}
+            {/* OpenAI GPT (Disabled) */}
             <button
-              onClick={() => setTranslationProvider('openai')}
-              className={translationProvider === 'openai' ? 'btn-primary' : 'btn-secondary'}
+              disabled
               style={{
                 padding: '10px 8px',
                 fontSize: '0.78rem',
                 flexDirection: 'column',
                 alignItems: 'flex-start',
                 gap: '3px',
-                borderColor: translationProvider === 'openai' ? '#10b981' : 'var(--border-glass)',
-                background: translationProvider === 'openai' ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)' : undefined
+                opacity: 0.4,
+                cursor: 'not-allowed',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px dashed var(--border-glass)'
               }}
             >
               <strong style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '3px' }}>
                 OpenAI GPT 🤖
               </strong>
-              <span style={{ fontSize: '0.68rem', opacity: 0.85 }}>GPT-4o LLM</span>
+              <span style={{ fontSize: '0.68rem', opacity: 0.7 }}>Disabled (Later)</span>
             </button>
           </div>
 
