@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, BookOpen, Trash2, Sparkles, ChevronLeft, ChevronRight, RefreshCw, Database } from 'lucide-react';
-import { ACADEMIC_CATEGORIES } from '../data/csGlossary';
+import { Search, Plus, BookOpen, Trash2, Sparkles, ChevronLeft, ChevronRight, RefreshCw, Database, UploadCloud, CheckCircle2 } from 'lucide-react';
+import { ACADEMIC_CATEGORIES, DEFAULT_CS_GLOSSARY } from '../data/csGlossary';
 import { AcademicCategory, CSTerm } from '../types';
-import { fetchGlossaryTermsAPI } from '../utils/storage';
+import { fetchGlossaryTermsAPI, syncGlossaryToSupabase, saveCustomGlossary } from '../utils/storage';
 
 interface GlossaryManagerProps {
   customGlossary: CSTerm[];
@@ -30,6 +30,10 @@ export default function GlossaryManager({
   const [total, setTotal] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
 
+  // Cloud Sync State
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncDone, setSyncDone] = useState<boolean>(false);
+
   // New Custom Term Form State
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTerm, setNewTerm] = useState('');
@@ -39,10 +43,8 @@ export default function GlossaryManager({
   const [newCodeExample, setNewCodeExample] = useState('');
 
   // Fetch API terms whenever Category, Search, Page or customGlossary updates
-  useEffect(() => {
-    let isSubscribed = true;
+  const loadTermsFromAPI = () => {
     setLoading(true);
-
     fetchGlossaryTermsAPI({
       category: selectedCategory,
       search: searchTerm,
@@ -50,20 +52,47 @@ export default function GlossaryManager({
       pageSize,
       userId
     }).then(res => {
-      if (isSubscribed) {
-        setTerms(res.data);
-        setTotal(res.total);
-        setTotalPages(res.totalPages);
-        setLoading(false);
-      }
+      setTerms(res.data);
+      setTotal(res.total);
+      setTotalPages(res.totalPages);
+      setLoading(false);
     }).catch(() => {
-      if (isSubscribed) setLoading(false);
+      setLoading(false);
     });
+  };
 
-    return () => {
-      isSubscribed = false;
-    };
+  useEffect(() => {
+    loadTermsFromAPI();
   }, [selectedCategory, searchTerm, page, customGlossary.length, userId]);
+
+  // One-Click Sync All Terms to Cloud Backend
+  const handleSyncToBackend = async () => {
+    setIsSyncing(true);
+    setSyncDone(false);
+
+    try {
+      // Merge all custom and default dictionary terms
+      const allTermsMap = new Map<string, CSTerm>();
+      [...customGlossary, ...DEFAULT_CS_GLOSSARY].forEach(item => {
+        allTermsMap.set(item.term.toLowerCase(), item);
+      });
+      const fullList = Array.from(allTermsMap.values());
+
+      // Save locally and sync to Supabase database
+      saveCustomGlossary(fullList, userId);
+      if (userId) {
+        await syncGlossaryToSupabase(fullList, userId);
+      }
+
+      setSyncDone(true);
+      setTimeout(() => setSyncDone(false), 3000);
+      loadTermsFromAPI();
+    } catch (e) {
+      console.warn('Sync glossary to backend failed:', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Reset page to 1 on category change
   const handleCategoryChange = (cat: AcademicCategory) => {
@@ -119,10 +148,37 @@ export default function GlossaryManager({
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '6px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-              <Database size={13} /> API Dynamic Data Engine ({total} Terms)
+          {/* Action Buttons Right */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
+              <Database size={13} /> API Data Engine ({total} Terms)
             </span>
+
+            {/* One-Click Sync to Backend Button */}
+            <button
+              onClick={handleSyncToBackend}
+              disabled={isSyncing}
+              className="btn-secondary"
+              style={{
+                padding: '8px 14px',
+                fontSize: '0.82rem',
+                borderColor: syncDone ? '#10b981' : 'rgba(56, 189, 248, 0.4)',
+                color: syncDone ? '#10b981' : '#38bdf8',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title="Sync all built-in and custom academic terms to backend cloud database"
+            >
+              {isSyncing ? (
+                <RefreshCw size={15} className="animate-spin" color="#38bdf8" />
+              ) : syncDone ? (
+                <CheckCircle2 size={15} color="#10b981" />
+              ) : (
+                <UploadCloud size={15} color="#38bdf8" />
+              )}
+              {isSyncing ? 'Syncing to Backend...' : syncDone ? 'Synced to Backend!' : 'Sync Terms to Backend'}
+            </button>
 
             <button
               onClick={() => setShowAddForm(!showAddForm)}
@@ -267,7 +323,7 @@ export default function GlossaryManager({
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
             <BookOpen size={36} color="var(--text-muted)" style={{ marginBottom: '12px', opacity: 0.5 }} />
             <p style={{ fontSize: '0.95rem', fontWeight: 600 }}>No matching academic terms found from API</p>
-            <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Try adjusting your search query or selected category filter.</p>
+            <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Try adjusting your search query or selected category filter, or click "Sync Terms to Backend".</p>
           </div>
         ) : (
           <>
