@@ -58,11 +58,11 @@ export default function AudioControls({
 
     const render = () => {
       try {
-        const width = canvas.width || 260;
-        const height = canvas.height || 36;
+        const width = canvas.width || 180;
+        const height = canvas.height || 32;
         ctx.clearRect(0, 0, width, height);
 
-        const barCount = 28;
+        const barCount = 22;
         const barWidth = Math.max(2, (width / barCount) - 3);
         const isActive = recordingState === 'recording';
 
@@ -71,7 +71,7 @@ export default function AudioControls({
           if (isActive) {
             const time = Date.now() * 0.005;
             const randomFactor = Math.sin(time + i * 0.4) * Math.cos(time * 0.5 + i * 0.2);
-            barHeight = Math.max(6, Math.abs(randomFactor) * (height - 6));
+            barHeight = Math.max(5, Math.abs(randomFactor) * (height - 5));
           }
 
           const gradient = ctx.createLinearGradient(0, height, 0, 0);
@@ -105,12 +105,11 @@ export default function AudioControls({
   const progressPercent = Math.min(100, (sessionSeconds / MAX_LECTURE_SECONDS) * 100);
 
   return (
-    <div className="glass-panel" style={{ borderRadius: 0, borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '16px 24px', background: 'rgba(15, 23, 42, 0.65)' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
+    <div className="glass-panel" style={{ borderRadius: 0, borderTop: 'none', borderLeft: 'none', borderRight: 'none', padding: '12px 24px', background: 'rgba(15, 23, 42, 0.75)', overflowX: 'auto' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '16px', minWidth: '980px' }}>
         
-        {/* Left Side: Mic Buttons & Recording Session Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          
+        {/* Section 1: Mic Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           {recordingState === 'idle' && (
             <button
               onClick={() => {
@@ -123,162 +122,175 @@ export default function AudioControls({
                 }
               }}
               className="btn-primary"
-              style={{ padding: '12px 22px', fontSize: '0.92rem' }}
+              style={{ padding: '8px 18px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
             >
-              <Mic size={18} /> Start Live Microphone
+              <Mic size={16} /> Start Live Microphone
             </button>
           )}
 
           {recordingState === 'recording' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <>
               <button
                 onClick={onPauseSession}
                 className="btn-secondary pulsing-recording"
-                style={{ padding: '10px 18px', fontSize: '0.88rem', borderColor: '#f59e0b', color: '#f59e0b' }}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', borderColor: '#f59e0b', color: '#f59e0b', whiteSpace: 'nowrap' }}
               >
-                <Pause size={16} /> Pause Recording
+                <Pause size={15} /> Pause
               </button>
               <button
                 onClick={onCancelSession}
                 className="btn-danger"
-                style={{ padding: '10px 16px', fontSize: '0.88rem' }}
+                style={{ padding: '8px 12px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
               >
-                <XCircle size={16} /> Cancel Session
+                <XCircle size={15} /> Cancel
               </button>
-            </div>
+            </>
           )}
 
           {recordingState === 'paused' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <>
               <button
                 onClick={onResumeSession}
                 className="btn-primary"
-                style={{ padding: '10px 18px', fontSize: '0.88rem', background: '#10b981' }}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', background: '#10b981', whiteSpace: 'nowrap' }}
               >
-                <Play size={16} /> Resume Recording
+                <Play size={15} /> Resume
               </button>
               <button
                 onClick={onCancelSession}
                 className="btn-danger"
-                style={{ padding: '10px 16px', fontSize: '0.88rem' }}
+                style={{ padding: '8px 12px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
               >
-                <XCircle size={16} /> Cancel Session
+                <XCircle size={15} /> Cancel
               </button>
-            </div>
+            </>
           )}
+        </div>
 
-          {/* Active Course & 2-Hour Timer Indicator */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Section 2: Active Course & Live Timer */}
+        <div style={{ flex: 1, minWidth: '280px', flexShrink: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: recordingState === 'recording' ? '#10b981' : (recordingState === 'paused' ? '#f59e0b' : (user ? (activeCourse ? '#38bdf8' : '#f59e0b') : '#ef4444')),
+              boxShadow: recordingState === 'recording' ? '0 0 8px #10b981' : 'none',
+              flexShrink: 0
+            }} />
+            
+            <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {!user ? 'Visitor Mode' : (activeCourse ? `${activeCourse.code}: ${activeCourse.title}` : 'No Course Selected')}
+            </strong>
+
+            {user && activeCourse && (
               <span style={{
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                backgroundColor: recordingState === 'recording' ? '#10b981' : (recordingState === 'paused' ? '#f59e0b' : (user ? (activeCourse ? '#38bdf8' : '#f59e0b') : '#ef4444')),
-                boxShadow: recordingState === 'recording' ? '0 0 10px #10b981' : 'none'
-              }} />
-              <span style={{ fontWeight: 600, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                {!user ? 'Visitor Mode (Not Signed In)' : (activeCourse ? `${activeCourse.code || ''}: ${activeCourse.title || ''}` : 'No Course Selected')}
-                {user && activeCourse && (
-                  <span style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '6px',
-                    background: 'rgba(56, 189, 248, 0.18)',
-                    color: '#38bdf8'
-                  }}>
-                    {calculateWeekNumber(activeCourse.startDate)}
-                  </span>
-                )}
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                padding: '1px 6px',
+                borderRadius: '4px',
+                background: 'rgba(56, 189, 248, 0.18)',
+                color: '#38bdf8',
+                flexShrink: 0
+              }}>
+                {calculateWeekNumber(activeCourse.startDate)}
               </span>
-            </div>
+            )}
 
-            {/* Timer & Session Status */}
-            <div style={{ marginTop: '3px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}>
-                {!user ? (
-                  <span onClick={onOpenAuthModal} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline' }}>
-                    Please sign in with Google to start live lecture captioning →
-                  </span>
-                ) : activeCourse ? (
-                  recordingState === 'recording' ? (
-                    <>Listening to {activeCourse.instructor || 'Instructor'}'s lecture voice...</>
-                  ) : recordingState === 'paused' ? (
-                    <span style={{ color: '#f59e0b', fontWeight: 600 }}>Lecture recording paused. Click "Resume" to continue.</span>
-                  ) : (
-                    <>Course selected. Click "Start Live Microphone" (Max 2h session).</>
-                  )
-                ) : (
-                  <span onClick={onOpenCourseSelector} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline' }}>
-                    Please choose a lecture course first →
-                  </span>
-                )}
-              </p>
-
-              {/* 2-Hour Timer Display */}
-              {recordingState !== 'idle' && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '1px 8px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid var(--border-glass)' }}>
-                  <Clock size={12} color={recordingState === 'recording' ? '#10b981' : '#f59e0b'} />
-                  <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: recordingState === 'recording' ? '#10b981' : '#f59e0b' }}>
-                    {formatTimer(sessionSeconds)} / 02:00:00
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Session Progress Bar */}
+            {/* 2-Hour Timer Badge */}
             {recordingState !== 'idle' && (
-              <div style={{ width: '100%', height: '3px', borderRadius: '2px', background: 'rgba(255,255,255,0.1)', marginTop: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${progressPercent}%`, height: '100%', background: recordingState === 'recording' ? '#10b981' : '#f59e0b', transition: 'width 0.5s ease' }} />
-              </div>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border-glass)',
+                fontSize: '0.72rem',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                color: recordingState === 'recording' ? '#10b981' : '#f59e0b',
+                flexShrink: 0
+              }}>
+                <Clock size={11} color={recordingState === 'recording' ? '#10b981' : '#f59e0b'} />
+                {formatTimer(sessionSeconds)} / 02:00:00
+              </span>
             )}
           </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>
+            <span style={{ fontSize: '0.73rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {!user ? (
+                <span onClick={onOpenAuthModal} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline' }}>
+                  Sign in with Google to start captioning →
+                </span>
+              ) : activeCourse ? (
+                recordingState === 'recording' ? (
+                  <>Listening to {activeCourse.instructor || 'Instructor'}...</>
+                ) : recordingState === 'paused' ? (
+                  <span style={{ color: '#f59e0b', fontWeight: 600 }}>Recording paused. Click "Resume".</span>
+                ) : (
+                  <>Click "Start Live Microphone" (Max 2h session).</>
+                )
+              ) : (
+                <span onClick={onOpenCourseSelector} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline' }}>
+                  Choose a lecture course first →
+                </span>
+              )}
+            </span>
+          </div>
+
+          {/* Session Progress Line */}
+          {recordingState !== 'idle' && (
+            <div style={{ width: '100%', height: '2px', borderRadius: '1px', background: 'rgba(255,255,255,0.08)', marginTop: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${progressPercent}%`, height: '100%', background: recordingState === 'recording' ? '#10b981' : '#f59e0b', transition: 'width 0.5s ease' }} />
+            </div>
+          )}
         </div>
 
-        {/* Center: Audio Waveform Equalizer Canvas */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1', maxWidth: '300px', justifyContent: 'center' }}>
-          <Activity size={18} color="#38bdf8" />
-          <canvas ref={canvasRef} width={240} height={36} style={{ borderRadius: '8px' }} />
+        {/* Section 3: Audio Equalizer Waveform */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <Activity size={16} color="#38bdf8" />
+          <canvas ref={canvasRef} width={180} height={32} style={{ borderRadius: '6px' }} />
         </div>
 
-        {/* Right Side: Translation Provider Tag & Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          
-          {/* Translation Provider Badge */}
+        {/* Section 4: Settings & Options Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          {/* Engine Provider Badge */}
           <button
             onClick={onOpenSettings}
             className="btn-secondary"
             style={{
-              padding: '6px 12px',
-              fontSize: '0.78rem',
+              padding: '5px 10px',
+              fontSize: '0.75rem',
               color: translationProvider === 'gemini' ? '#818cf8' : '#38bdf8',
               borderColor: translationProvider === 'gemini' ? 'rgba(129, 140, 248, 0.4)' : 'rgba(56, 189, 248, 0.3)',
-              background: translationProvider === 'gemini' ? 'rgba(99, 102, 241, 0.12)' : undefined
+              background: translationProvider === 'gemini' ? 'rgba(99, 102, 241, 0.12)' : undefined,
+              whiteSpace: 'nowrap'
             }}
             title="Click to change Translation Provider in Settings"
           >
-            <Sparkles size={14} color={translationProvider === 'gemini' ? '#818cf8' : '#38bdf8'} />
+            <Sparkles size={13} color={translationProvider === 'gemini' ? '#818cf8' : '#38bdf8'} />
             {translationProvider === 'gemini' ? 'Gemini AI (LLM)' : 'Google Translate'}
           </button>
 
-          {/* Change Course Link */}
+          {/* Switch Course */}
           <button
             onClick={onOpenCourseSelector}
             className="btn-secondary"
-            style={{ padding: '6px 12px', fontSize: '0.8rem', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+            style={{ padding: '5px 10px', fontSize: '0.75rem', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)', whiteSpace: 'nowrap' }}
           >
-            <GraduationCap size={15} /> Switch Course
+            <GraduationCap size={14} /> Switch Course
           </button>
 
           {/* Noise Suppression Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setNoiseSuppression(!noiseSuppression)}>
-            <ShieldCheck size={18} color={noiseSuppression ? '#10b981' : '#64748b'} />
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-              Noise Filter: <strong style={{ color: noiseSuppression ? '#10b981' : 'var(--text-muted)' }}>{noiseSuppression ? 'ON' : 'OFF'}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => setNoiseSuppression(!noiseSuppression)}>
+            <ShieldCheck size={16} color={noiseSuppression ? '#10b981' : '#64748b'} />
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              Filter: <strong style={{ color: noiseSuppression ? '#10b981' : 'var(--text-muted)' }}>{noiseSuppression ? 'ON' : 'OFF'}</strong>
             </span>
           </div>
-
         </div>
 
       </div>
