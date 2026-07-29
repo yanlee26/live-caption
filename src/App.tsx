@@ -12,6 +12,7 @@ import CourseSelectorModal from './components/CourseSelectorModal';
 import AuthModal from './components/AuthModal';
 
 import { translateWithTermPreservation, fetchOnlineTranslation, matchCSTerms } from './utils/translationEngine';
+import { streamingTranslationService } from './utils/streamingTranslationService';
 import { calculateWeekNumber } from './utils/dateUtils';
 import { Calendar } from 'lucide-react';
 import { CSTerm, TranscriptSentence, Course } from './types';
@@ -383,8 +384,8 @@ export default function App() {
 
         setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, captionObj));
 
-        // For completed segments, call the selected LLM provider (Gemini / OpenAI) for high-accuracy translation
-        fetchOnlineTranslation(seg, activeGlossary, activeProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineRes => {
+        // For completed segments, call the streaming translation service (in-memory LRU cache + stream queue)
+        streamingTranslationService.translateStream(seg, activeGlossary, activeProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineRes => {
           if (onlineRes && onlineRes.chinese) {
             setTranscriptHistory(prev => prev.map(item =>
               item.id === captionObj.id ? { ...item, chinese: onlineRes.chinese, detectedTerms: onlineRes.detectedTerms } : item
@@ -424,7 +425,7 @@ export default function App() {
       // For final sentence results, use selected LLM provider (Gemini / OpenAI) to save API quota & prevent 429 rate limits.
       const liveProvider = isFinal ? activeProvider : 'google';
 
-      fetchOnlineTranslation(activeSegment, activeGlossary, liveProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineResult => {
+      streamingTranslationService.translateStream(activeSegment, activeGlossary, liveProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineResult => {
         if (onlineResult && onlineResult.chinese && latestSpeechTextRef.current === activeSegment.trim()) {
           const upgradedObj: TranscriptSentence = {
             ...activeCaptionObj,
@@ -632,6 +633,7 @@ export default function App() {
               fontSize={fontSize}
               setFontSize={setFontSize}
               layoutOrder={layoutOrder}
+              setLayoutOrder={setLayoutOrder}
             />
 
             {/* Quick Live Stream Summary underneath subtitle view */}
