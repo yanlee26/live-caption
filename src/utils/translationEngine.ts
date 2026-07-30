@@ -342,25 +342,27 @@ export async function fetchOnlineTranslation(
   }
 
   // 2. MyMemory Translation API Fallback
-  try {
-    const myMemUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(englishText.trim())}&langpair=en|zh-CN`;
-    const res = await fetch(myMemUrl);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.responseData && data.responseData.translatedText) {
-        const rawText = data.responseData.translatedText;
-        if (rawText && rawText !== englishText) {
-          const finalCn = applyCSTermPreservation(rawText.trim(), detectedTerms);
-          return {
-            original: englishText,
-            chinese: finalCn,
-            detectedTerms
-          };
+  if (englishText.trim().length <= 450) {
+    try {
+      const myMemUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(englishText.trim())}&langpair=en|zh-CN&de=livecaption@guest.com`;
+      const res = await fetch(myMemUrl);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.responseData && data.responseData.translatedText) {
+          const rawText = data.responseData.translatedText;
+          if (rawText && rawText !== englishText) {
+            const finalCn = applyCSTermPreservation(rawText.trim(), detectedTerms);
+            return {
+              original: englishText,
+              chinese: finalCn,
+              detectedTerms
+            };
+          }
         }
       }
+    } catch (e) {
+      // Ignore fallback API errors silently
     }
-  } catch (e) {
-    console.warn('MyMemory translate API bypassed, using local engine...', e);
   }
 
   // 3. Local Engine Fallback

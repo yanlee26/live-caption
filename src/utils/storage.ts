@@ -329,12 +329,10 @@ export async function fetchGlossaryTermsAPI(params: GlossaryQueryParams): Promis
   const { category = 'All Categories', search = '', page = 1, pageSize = 6, userId } = params;
 
   // Attempt Supabase backend API query first if configured
-  if (isSupabaseConfigured() && supabase) {
+  if (isSupabaseConfigured() && supabase && userId && userId !== 'guest') {
     try {
-      let query = supabase.from('custom_glossary').select('*', { count: 'exact' });
-      if (userId) {
-        query = query.eq('user_id', userId);
-      }
+      let query = supabase.from('custom_glossary').select('*', { count: 'exact' }).eq('user_id', userId);
+
       if (category && category !== 'All Categories') {
         query = query.eq('category', category);
       }
