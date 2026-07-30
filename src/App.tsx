@@ -348,6 +348,8 @@ export default function App() {
       translationProvider: activeProvider,
       geminiApiKey: activeGeminiKey,
       openAiApiKey: activeOpenAiKey,
+      openAiModel: activeOpenAiModel,
+      customGlossary: activeGlossary
     } = translationParamsRef.current;
 
     // Auto-discover and save newly encountered academic terms into user dictionary
