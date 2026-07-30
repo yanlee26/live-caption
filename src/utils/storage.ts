@@ -404,72 +404,20 @@ export function loadAppSettings(): AppSettings {
   return DEFAULT_SETTINGS;
 }
 
-export function saveAppSettings(settings: AppSettings, userId?: string) {
+export function saveAppSettings(settings: AppSettings, _userId?: string) {
   try {
     localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
   } catch (e) {
     console.warn('Failed to save settings to localStorage:', e);
   }
-
-  if (isSupabaseConfigured() && supabase && userId) {
-    syncSettingsToSupabase(settings, userId).catch(err => {
-      console.warn('Sync settings error:', err);
-    });
-  }
 }
 
-export async function fetchSettingsFromSupabase(userId: string): Promise<AppSettings | null> {
-  if (!isSupabaseConfigured() || !supabase) return null;
-  try {
-    const { data, error } = await supabase
-      .from('user_settings')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error) {
-      if (error.code === '42P01') {
-        console.info('Supabase table "user_settings" does not exist yet.');
-      }
-      return null;
-    }
-    if (!data) return null;
-
-    return {
-      fontSize: data.font_size ?? DEFAULT_SETTINGS.fontSize,
-      layoutOrder: data.layout_order ?? DEFAULT_SETTINGS.layoutOrder,
-      theme: data.theme ?? DEFAULT_SETTINGS.theme,
-      speechLang: data.speech_lang ?? DEFAULT_SETTINGS.speechLang,
-      translationProvider: data.translation_provider ?? DEFAULT_SETTINGS.translationProvider,
-      geminiApiKey: data.gemini_api_key ?? DEFAULT_SETTINGS.geminiApiKey,
-      openAiApiKey: data.openai_api_key ?? DEFAULT_SETTINGS.openAiApiKey,
-      openAiModel: data.openai_model ?? DEFAULT_SETTINGS.openAiModel
-    };
-  } catch (e) {
-    return null;
-  }
+export async function fetchSettingsFromSupabase(_userId: string): Promise<AppSettings | null> {
+  // Disabled as per user request
+  return null;
 }
 
-export async function syncSettingsToSupabase(settings: AppSettings, userId: string) {
-  if (!isSupabaseConfigured() || !supabase || !userId) return;
-  try {
-    const { error } = await supabase.from('user_settings').upsert({
-      user_id: userId,
-      font_size: settings.fontSize,
-      layout_order: settings.layoutOrder,
-      theme: settings.theme,
-      speech_lang: settings.speechLang,
-      translation_provider: settings.translationProvider,
-      gemini_api_key: settings.geminiApiKey,
-      openai_api_key: settings.openAiApiKey,
-      openai_model: settings.openAiModel,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id' });
-
-    if (error && error.code === '42P01') {
-      console.info('Supabase table "user_settings" does not exist yet.');
-    }
-  } catch (e) {
-    // Ignore error until tables are created
-  }
+export async function syncSettingsToSupabase(_settings: AppSettings, _userId: string) {
+  // Disabled as per user request
+  return;
 }
