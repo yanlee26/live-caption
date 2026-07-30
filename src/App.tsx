@@ -89,6 +89,7 @@ export default function App() {
   const MAX_LECTURE_SECONDS = 7200; // 2 Hours
   const [recordingState, setRecordingState] = useState<'idle' | 'recording' | 'paused'>('idle');
   const [sessionSeconds, setSessionSeconds] = useState<number>(0);
+  const sessionStartTimeRef = useRef<number | null>(null);
 
   // Speech Recognition & Auto-Reconnect Refs
   const recognitionRef = useRef<any>(null);
@@ -96,19 +97,25 @@ export default function App() {
   const latestSpeechTextRef = useRef<string>('');
   const processedResultIndexesRef = useRef<Set<number>>(new Set());
 
-  // 2-Hour Session Countdown & Auto-Stop Timer
+  // 2-Hour Real-Time Timestamp-based Recording Timer (immune to browser background tab throttling)
   useEffect(() => {
     let interval: any = null;
     if (recordingState === 'recording') {
+      if (!sessionStartTimeRef.current) {
+        sessionStartTimeRef.current = Date.now() - (sessionSeconds * 1000);
+      }
+
       interval = setInterval(() => {
-        setSessionSeconds(prev => {
-          if (prev >= MAX_LECTURE_SECONDS - 1) {
+        if (sessionStartTimeRef.current) {
+          const elapsed = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
+          if (elapsed >= MAX_LECTURE_SECONDS) {
             handleCancelSession();
             alert('Maximum 2-hour lecture session duration reached. Live recording stopped.');
-            return 0;
+            setSessionSeconds(0);
+          } else {
+            setSessionSeconds(elapsed);
           }
-          return prev + 1;
-        });
+        }
       }, 1000);
     }
     return () => {
@@ -118,6 +125,8 @@ export default function App() {
 
   // Session Control Handlers
   const handleStartSession = () => {
+    sessionStartTimeRef.current = Date.now();
+    setSessionSeconds(0);
     handleStartListening();
     setRecordingState('recording');
   };
@@ -128,12 +137,14 @@ export default function App() {
   };
 
   const handleResumeSession = () => {
+    sessionStartTimeRef.current = Date.now() - (sessionSeconds * 1000);
     handleStartListening();
     setRecordingState('recording');
   };
 
   const handleCancelSession = () => {
     handleStopListening();
+    sessionStartTimeRef.current = null;
     setRecordingState('idle');
     setSessionSeconds(0);
     if (activeCourse) {
