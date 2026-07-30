@@ -168,18 +168,17 @@ export function saveTranscripts(transcripts: TranscriptSentence[], userId?: stri
 }
 
 export async function fetchTranscriptsFromSupabase(userId: string): Promise<TranscriptSentence[] | null> {
-  if (!isSupabaseConfigured() || !supabase) return null;
+  if (!isSupabaseConfigured() || !supabase || !userId || userId === 'guest') return null;
   try {
     const { data, error } = await supabase
       .from('transcripts')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: true })
-      .limit(500);
+      .limit(150);
 
     if (error) {
-      if (error.code === '42P01') {
-        console.info('Supabase table "transcripts" does not exist yet.');
+      if (error.code === '42P01' || error.code === '57014') {
+        console.info('Supabase transcripts query bypassed:', error.message);
       }
       return null;
     }
@@ -190,7 +189,7 @@ export async function fetchTranscriptsFromSupabase(userId: string): Promise<Tran
       speaker: item.speaker || 'Speaker 1',
       english: item.english,
       chinese: item.chinese,
-      time: item.timestamp,
+      time: item.timestamp || 'Live',
       bookmarked: item.bookmarked || false,
       courseId: item.course_id || undefined,
       userId: item.user_id
