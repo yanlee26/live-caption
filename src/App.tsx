@@ -21,7 +21,8 @@ import {
   loadActiveCourseId, saveActiveCourseId,
   loadSavedTranscripts, saveTranscripts, fetchTranscriptsFromSupabase,
   loadCustomGlossary, saveCustomGlossary, fetchGlossaryFromSupabase,
-  loadAppSettings, saveAppSettings, fetchSettingsFromSupabase
+  loadAppSettings, saveAppSettings, fetchSettingsFromSupabase,
+  deduplicateTranscripts
 } from './utils/storage';
 import { useAuth } from './context/AuthContext';
 
@@ -63,13 +64,13 @@ export default function App() {
     userId: user?.id
   };
 
+  const initialHistory = savedTranscripts.length > 0 ? deduplicateTranscripts(savedTranscripts) : [defaultInitialCaption];
+
   const [currentCaption, setCurrentCaption] = useState<TranscriptSentence | null>(
-    savedTranscripts.length > 0 ? savedTranscripts[savedTranscripts.length - 1] : defaultInitialCaption
+    initialHistory.length > 0 ? initialHistory[initialHistory.length - 1] : defaultInitialCaption
   );
 
-  const [transcriptHistory, setTranscriptHistory] = useState<TranscriptSentence[]>(
-    savedTranscripts.length > 0 ? savedTranscripts : [defaultInitialCaption]
-  );
+  const [transcriptHistory, setTranscriptHistory] = useState<TranscriptSentence[]>(initialHistory);
   const [customGlossary, setCustomGlossary] = useState<CSTerm[]>(savedGlossary);
 
   // Modals & Preferences
@@ -404,15 +405,15 @@ export default function App() {
 
         setTranscriptHistory(prev => {
           const cleanPrev = prev.filter(t => !t.id.startsWith('init-'));
-          return appendDeduplicatedTranscript(cleanPrev, captionObj);
+          return deduplicateTranscripts([...cleanPrev, captionObj]);
         });
 
         // For completed segments, call the streaming translation service (in-memory LRU cache + stream queue)
         streamingTranslationService.translateStream(seg, activeGlossary, activeProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineRes => {
           if (onlineRes && onlineRes.chinese) {
-            setTranscriptHistory(prev => prev.map(item =>
+            setTranscriptHistory(prev => deduplicateTranscripts(prev.map(item =>
               item.id === segId ? { ...item, chinese: onlineRes.chinese, detectedTerms: onlineRes.detectedTerms } : item
-            ));
+            )));
           }
         });
       }
@@ -448,15 +449,17 @@ export default function App() {
 
       setCurrentCaption(activeCaptionObj);
 
-      // Always update transcriptHistory so the bottom history updates in real-time
+      // Always update transcriptHistory so the bottom history updates in real-time without duplicates
       setTranscriptHistory(prev => {
         const cleanPrev = prev.filter(t => !t.id.startsWith('init-'));
         const exists = cleanPrev.some(item => item.id === activeId);
+        let updated: TranscriptSentence[];
         if (exists) {
-          return cleanPrev.map(item => item.id === activeId ? activeCaptionObj : item);
+          updated = cleanPrev.map(item => item.id === activeId ? activeCaptionObj : item);
         } else {
-          return [...cleanPrev, activeCaptionObj];
+          updated = [...cleanPrev, activeCaptionObj];
         }
+        return deduplicateTranscripts(updated);
       });
 
       if (isFinal) {
@@ -477,9 +480,9 @@ export default function App() {
 
           setCurrentCaption(upgradedObj);
 
-          setTranscriptHistory(prev => prev.map(item =>
+          setTranscriptHistory(prev => deduplicateTranscripts(prev.map(item =>
             item.id === activeId ? upgradedObj : item
-          ));
+          )));
         }
       });
     }

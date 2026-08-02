@@ -136,6 +136,63 @@ export function saveActiveCourseId(courseId: string) {
   }
 }
 
+// Helper to normalize English text for strict duplicate detection
+export function normalizeTranscriptText(text: string): string {
+  return (text || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Deduplicates transcript history by removing duplicate or near-identical consecutive/recent lines
+export function deduplicateTranscripts(list: TranscriptSentence[]): TranscriptSentence[] {
+  if (!list || list.length === 0) return [];
+
+  // Filter out placeholder init items if real live captions exist
+  const realCaptions = list.filter(t => !t.id.startsWith('init-'));
+  const targetList = realCaptions.length > 0 ? realCaptions : list;
+
+  const result: TranscriptSentence[] = [];
+
+  for (const item of targetList) {
+    if (!item.english || !item.english.trim()) continue;
+
+    const normNew = normalizeTranscriptText(item.english);
+    if (!normNew) continue;
+
+    // Search in the recent window of result for matching normalized text or matching ID
+    const recentWindow = result.slice(-10);
+    const recentIndex = recentWindow.findIndex(existing => {
+      if (existing.id === item.id) return true;
+      const normExisting = normalizeTranscriptText(existing.english);
+      return normExisting === normNew ||
+        (normExisting.length > 8 && normNew.length > 8 && (normExisting.includes(normNew) || normNew.includes(normExisting)));
+    });
+
+    if (recentIndex !== -1) {
+      const absIndex = result.length - (recentWindow.length - recentIndex);
+      const existing = result[absIndex];
+
+      // Merge into existing item: pick longer english & better chinese translation
+      const longerEnglish = item.english.length >= existing.english.length ? item.english : existing.english;
+      const betterChinese = (item.chinese && !item.chinese.includes('useaexpensekeywords') && item.chinese !== item.english)
+        ? item.chinese
+        : existing.chinese;
+
+      result[absIndex] = {
+        ...existing,
+        english: longerEnglish,
+        chinese: betterChinese,
+        detectedTerms: (item.detectedTerms && item.detectedTerms.length >= (existing.detectedTerms?.length || 0))
+          ? item.detectedTerms
+          : existing.detectedTerms,
+        bookmarked: existing.bookmarked || item.bookmarked
+      };
+    } else {
+      result.push(item);
+    }
+  }
+
+  return result;
+}
+
 // --- Transcripts Storage ---
 export function loadSavedTranscripts(): TranscriptSentence[] {
   try {
@@ -143,7 +200,7 @@ export function loadSavedTranscripts(): TranscriptSentence[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed;
+        return deduplicateTranscripts(parsed);
       }
     }
   } catch (e) {
@@ -154,7 +211,8 @@ export function loadSavedTranscripts(): TranscriptSentence[] {
 
 export function saveTranscripts(transcripts: TranscriptSentence[], userId?: string) {
   try {
-    const trimmed = transcripts.slice(-500);
+    const deduped = deduplicateTranscripts(transcripts);
+    const trimmed = deduped.slice(-500);
     localStorage.setItem(KEYS.TRANSCRIPTS, JSON.stringify(trimmed));
   } catch (e) {
     console.warn('Failed to save transcripts to localStorage:', e);
