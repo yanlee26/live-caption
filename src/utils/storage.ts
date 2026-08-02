@@ -136,9 +136,43 @@ export function saveActiveCourseId(courseId: string) {
   }
 }
 
-// Helper to normalize English text for strict duplicate detection
+// Helper to normalize English text for strict duplicate and prefix detection
 export function normalizeTranscriptText(text: string): string {
   return (text || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Checks whether textA and textB are sub-sentences, prefixes, or misrecognized variants of each other
+export function isSubsentenceOrPrefix(textA: string, textB: string): boolean {
+  const normA = normalizeTranscriptText(textA);
+  const normB = normalizeTranscriptText(textB);
+
+  if (!normA || !normB) return false;
+
+  // Exact match
+  if (normA === normB) return true;
+
+  // One is prefix of another (e.g. "in" -> "in the" -> "in the lecture")
+  if (normB.startsWith(normA) || normA.startsWith(normB)) return true;
+
+  // Substring match (e.g. "allow objects of unrelent" in "this will allow objects of unrelated classes")
+  if (normA.length >= 6 && normB.length >= 6 && (normA.includes(normB) || normB.includes(normA))) {
+    return true;
+  }
+
+  // Common prefix ratio (e.g. "this will allow objects of unrelent" vs "this will allow objects of unrelated classes to be presented")
+  const minLen = Math.min(normA.length, normB.length);
+  if (minLen >= 10) {
+    let commonPrefix = 0;
+    while (commonPrefix < minLen && normA[commonPrefix] === normB[commonPrefix]) {
+      commonPrefix++;
+    }
+    // If common prefix covers >= 60% of the shorter text, treat as same sentence evolution
+    if (commonPrefix / minLen >= 0.6) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // Deduplicates transcript history by removing duplicate or near-identical consecutive/recent lines
@@ -155,31 +189,39 @@ export function deduplicateTranscripts(list: TranscriptSentence[]): TranscriptSe
     if (!item.english || !item.english.trim()) continue;
 
     const normNew = normalizeTranscriptText(item.english);
-    if (!normNew) continue;
+    // Ignore 1-char noise fragments
+    if (!normNew || normNew.length < 2) continue;
 
-    // Search in the recent window of result for matching normalized text or matching ID
+    // Search in the recent window of result for matching normalized text or matching ID or prefix/subsentence
     const recentWindow = result.slice(-10);
     const recentIndex = recentWindow.findIndex(existing => {
       if (existing.id === item.id) return true;
-      const normExisting = normalizeTranscriptText(existing.english);
-      return normExisting === normNew ||
-        (normExisting.length > 8 && normNew.length > 8 && (normExisting.includes(normNew) || normNew.includes(normExisting)));
+      return isSubsentenceOrPrefix(existing.english, item.english);
     });
 
     if (recentIndex !== -1) {
       const absIndex = result.length - (recentWindow.length - recentIndex);
       const existing = result[absIndex];
 
-      // Merge into existing item: pick longer english & better chinese translation
-      const longerEnglish = item.english.length >= existing.english.length ? item.english : existing.english;
-      const betterChinese = (item.chinese && !item.chinese.includes('useaexpensekeywords') && item.chinese !== item.english)
+      // Prefer longer/more complete English text
+      const isNewBetter = item.english.trim().length >= existing.english.trim().length;
+      const longerEnglish = isNewBetter ? item.english : existing.english;
+
+      // Prefer clean Chinese translation over fallback or raw text
+      const isNewChineseBetter = item.chinese &&
+        !item.chinese.includes('useaexpensekeywords') &&
+        item.chinese !== item.english &&
+        item.chinese.length >= (existing.chinese?.length || 0);
+
+      const betterChinese = isNewChineseBetter
         ? item.chinese
-        : existing.chinese;
+        : (existing.chinese && !existing.chinese.includes('useaexpensekeywords') ? existing.chinese : item.chinese);
 
       result[absIndex] = {
         ...existing,
+        id: isNewBetter ? item.id : existing.id,
         english: longerEnglish,
-        chinese: betterChinese,
+        chinese: betterChinese || item.chinese || existing.chinese,
         detectedTerms: (item.detectedTerms && item.detectedTerms.length >= (existing.detectedTerms?.length || 0))
           ? item.detectedTerms
           : existing.detectedTerms,
@@ -190,7 +232,23 @@ export function deduplicateTranscripts(list: TranscriptSentence[]): TranscriptSe
     }
   }
 
-  return result;
+  // Secondary pass: filter out isolated short fragments (< 10 chars, e.g. "in", "in the", "this will") if followed by longer extending sentences
+  const finalCleaned: TranscriptSentence[] = [];
+  for (let i = 0; i < result.length; i++) {
+    const item = result[i];
+    const norm = normalizeTranscriptText(item.english);
+
+    if (norm.length < 10 && i < result.length - 1) {
+      const nextNorm = normalizeTranscriptText(result[i + 1].english);
+      if (nextNorm.startsWith(norm) || nextNorm.includes(norm)) {
+        // Skip short prefix fragment in favor of next extending sentence
+        continue;
+      }
+    }
+    finalCleaned.push(item);
+  }
+
+  return finalCleaned;
 }
 
 // --- Transcripts Storage ---
