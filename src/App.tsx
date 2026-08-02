@@ -96,6 +96,7 @@ export default function App() {
   const isListeningRef = useRef<boolean>(false);
   const latestSpeechTextRef = useRef<string>('');
   const processedResultIndexesRef = useRef<Set<number>>(new Set());
+  const activeCaptionIdRef = useRef<string | null>(null);
 
   // 2-Hour Real-Time Timestamp-based Recording Timer (immune to browser background tab throttling)
   useEffect(() => {
@@ -144,6 +145,7 @@ export default function App() {
 
   const handleCancelSession = () => {
     handleStopListening();
+    activeCaptionIdRef.current = null;
     sessionStartTimeRef.current = null;
     setRecordingState('idle');
     setSessionSeconds(0);
@@ -379,14 +381,15 @@ export default function App() {
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const currentWeek = calculateWeekNumber(activeCourse?.startDate, now);
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     // Process previous completed segments if any
     completedSegments.forEach(seg => {
       if (seg.trim()) {
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const instantProcessed = translateWithTermPreservation(seg, activeGlossary);
+        const segId = `live-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
         const captionObj: TranscriptSentence = {
-          id: `live-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          id: segId,
           time: timeStr,
           speaker: activeCourse ? activeCourse.instructor : 'Live Professor',
           english: instantProcessed.original,
@@ -399,27 +402,38 @@ export default function App() {
           weekNumber: currentWeek
         };
 
-        setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, captionObj));
+        setTranscriptHistory(prev => {
+          const cleanPrev = prev.filter(t => !t.id.startsWith('init-'));
+          return appendDeduplicatedTranscript(cleanPrev, captionObj);
+        });
 
         // For completed segments, call the streaming translation service (in-memory LRU cache + stream queue)
         streamingTranslationService.translateStream(seg, activeGlossary, activeProvider, activeGeminiKey, activeOpenAiKey, activeOpenAiModel).then(onlineRes => {
           if (onlineRes && onlineRes.chinese) {
             setTranscriptHistory(prev => prev.map(item =>
-              item.id === captionObj.id ? { ...item, chinese: onlineRes.chinese, detectedTerms: onlineRes.detectedTerms } : item
+              item.id === segId ? { ...item, chinese: onlineRes.chinese, detectedTerms: onlineRes.detectedTerms } : item
             ));
           }
         });
       }
     });
 
+    if (completedSegments.length > 0) {
+      activeCaptionIdRef.current = null;
+    }
+
     // Process current active segment
     if (activeSegment.trim()) {
       latestSpeechTextRef.current = activeSegment.trim();
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const instantProcessed = translateWithTermPreservation(activeSegment, activeGlossary);
 
+      if (!activeCaptionIdRef.current) {
+        activeCaptionIdRef.current = `live-active-${Date.now()}`;
+      }
+      const activeId = activeCaptionIdRef.current;
+
       const activeCaptionObj: TranscriptSentence = {
-        id: `live-active-${Date.now()}`,
+        id: activeId,
         time: timeStr,
         speaker: activeCourse ? activeCourse.instructor : 'Live Professor',
         english: instantProcessed.original,
@@ -434,8 +448,19 @@ export default function App() {
 
       setCurrentCaption(activeCaptionObj);
 
+      // Always update transcriptHistory so the bottom history updates in real-time
+      setTranscriptHistory(prev => {
+        const cleanPrev = prev.filter(t => !t.id.startsWith('init-'));
+        const exists = cleanPrev.some(item => item.id === activeId);
+        if (exists) {
+          return cleanPrev.map(item => item.id === activeId ? activeCaptionObj : item);
+        } else {
+          return [...cleanPrev, activeCaptionObj];
+        }
+      });
+
       if (isFinal) {
-        setTranscriptHistory(prev => appendDeduplicatedTranscript(prev, activeCaptionObj));
+        activeCaptionIdRef.current = null;
       }
 
       // For interim streaming text, use fast Google Translate preview.
@@ -452,11 +477,9 @@ export default function App() {
 
           setCurrentCaption(upgradedObj);
 
-          if (isFinal) {
-            setTranscriptHistory(prev => prev.map(item =>
-              item.id === activeCaptionObj.id ? upgradedObj : item
-            ));
-          }
+          setTranscriptHistory(prev => prev.map(item =>
+            item.id === activeId ? upgradedObj : item
+          ));
         }
       });
     }
@@ -557,6 +580,7 @@ export default function App() {
     setIsListening(false);
     isListeningRef.current = false;
     processedResultIndexesRef.current.clear();
+    activeCaptionIdRef.current = null;
 
     if (recognitionRef.current) {
       try {
@@ -690,16 +714,22 @@ export default function App() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {activeCourseHistory.slice(-4).reverse().map((item, idx) => (
-                    <div key={item.id || idx} style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', borderLeft: '3px solid #38bdf8' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block' }}>
-                        {item.english}
-                      </span>
-                      <span style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 500 }}>
-                        {item.chinese}
-                      </span>
+                  {activeCourseHistory.length === 0 ? (
+                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      暂无同传记录。点击“启动实时麦克风”即可在此实时显示同传字幕记录。
                     </div>
-                  ))}
+                  ) : (
+                    activeCourseHistory.slice(-4).reverse().map((item, idx) => (
+                      <div key={item.id || idx} style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', borderLeft: '3px solid #38bdf8' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block' }}>
+                          {item.english}
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 500 }}>
+                          {item.chinese}
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
