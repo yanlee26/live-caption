@@ -208,6 +208,15 @@ export default function App() {
   // Update current caption and initial sentence when activeCourse changes
   useEffect(() => {
     if (!activeCourse) return;
+
+    // Reset recording session, mic listening, and session timer on course switch
+    handleStopListening();
+    setRecordingState('idle');
+    setSessionSeconds(0);
+    sessionStartTimeRef.current = null;
+    activeCaptionIdRef.current = null;
+    setSelectedWeekFilter('all');
+
     const courseTranscripts = transcriptHistory.filter(t => t.courseId === activeCourse.id);
     if (courseTranscripts.length > 0) {
       setCurrentCaption(courseTranscripts[courseTranscripts.length - 1]);
@@ -229,9 +238,9 @@ export default function App() {
 
   const [selectedWeekFilter, setSelectedWeekFilter] = useState<string>('all');
 
-  // Filter transcript history by currently active course & selected week filter
+  // Filter transcript history strictly by currently active course & selected week filter
   const activeCourseHistory = transcriptHistory
-    .filter(t => !t.courseId || t.courseId === activeCourse?.id)
+    .filter(t => t.courseId === activeCourse?.id)
     .filter(t => {
       if (selectedWeekFilter === 'all') return true;
       const itemWeek = t.weekNumber || calculateWeekNumber(activeCourse?.startDate, t.date ? new Date(t.date) : new Date());
@@ -595,6 +604,7 @@ export default function App() {
   // Course Handlers
   const handleSelectCourse = (course: Course) => {
     setActiveCourse(course);
+    setShowCourseSelectorModal(false);
   };
 
   const handleCreateCourse = (newCourse: Course) => {
