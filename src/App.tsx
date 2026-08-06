@@ -611,6 +611,19 @@ export default function App() {
     setCourses(prev => [newCourse, ...prev]);
   };
 
+  const handleDeleteCourse = (courseId: string) => {
+    setCourses(prev => {
+      const updated = prev.filter(c => c.id !== courseId);
+      if (activeCourse?.id === courseId) {
+        const nextCourse = updated[0] || null;
+        setActiveCourse(nextCourse);
+      }
+      return updated;
+    });
+
+    setTranscriptHistory(prev => prev.filter(t => t.courseId !== courseId));
+  };
+
   // Bookmark Line Toggle
   const handleToggleBookmark = (targetCaption: TranscriptSentence) => {
     const updatedBookmarkStatus = !targetCaption.bookmarked;
@@ -785,6 +798,7 @@ export default function App() {
           selectedCourse={activeCourse}
           onSelectCourse={handleSelectCourse}
           onCreateCourse={handleCreateCourse}
+          onDeleteCourse={handleDeleteCourse}
           onClose={() => setShowCourseSelectorModal(false)}
         />
       )}

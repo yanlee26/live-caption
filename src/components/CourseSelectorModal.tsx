@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, BookOpen, Plus, Check, Sparkles, GraduationCap, ArrowRight, Calendar } from 'lucide-react';
+import { X, BookOpen, Plus, Check, Sparkles, GraduationCap, ArrowRight, Calendar, Trash2 } from 'lucide-react';
 import { Course, AcademicCategory } from '../types';
 import { ACADEMIC_CATEGORIES } from '../data/csGlossary';
 import { calculateWeekNumber, DEFAULT_COURSE_START_DATE } from '../utils/dateUtils';
@@ -9,6 +9,7 @@ interface CourseSelectorModalProps {
   selectedCourse: Course | null;
   onSelectCourse: (course: Course) => void;
   onCreateCourse: (newCourse: Course) => void;
+  onDeleteCourse?: (courseId: string) => void;
   onClose?: () => void;
 }
 
@@ -17,6 +18,7 @@ export default function CourseSelectorModal({
   selectedCourse,
   onSelectCourse,
   onCreateCourse,
+  onDeleteCourse,
   onClose
 }: CourseSelectorModalProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -264,18 +266,42 @@ export default function CourseSelectorModal({
                   </p>
                 </div>
 
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  border: isSelected ? '2px solid #38bdf8' : '1px solid var(--border-glass)',
-                  background: isSelected ? '#38bdf8' : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  {isSelected && <Check size={18} color="#ffffff" />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {onDeleteCourse && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Are you sure you want to remove course "${course.code}: ${course.title}"?`)) {
+                          onDeleteCourse(course.id);
+                        }
+                      }}
+                      className="btn-secondary"
+                      style={{
+                        padding: '6px',
+                        borderRadius: '8px',
+                        color: '#ef4444',
+                        borderColor: 'transparent',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        cursor: 'pointer'
+                      }}
+                      title={`Remove course ${course.code}`}
+                    >
+                      <Trash2 size={16} color="#ef4444" />
+                    </button>
+                  )}
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    border: isSelected ? '2px solid #38bdf8' : '1px solid var(--border-glass)',
+                    background: isSelected ? '#38bdf8' : 'transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    {isSelected && <Check size={18} color="#ffffff" />}
+                  </div>
                 </div>
               </div>
             );
