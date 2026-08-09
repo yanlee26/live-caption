@@ -1,4 +1,4 @@
-import { Course, CSTerm, TranscriptSentence } from '../types';
+import { Course, CSTerm, TranscriptSentence, AcademicCategory } from '../types';
 import { INITIAL_COURSES } from '../data/courses';
 import { DEFAULT_CS_GLOSSARY } from '../data/csGlossary';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -37,9 +37,9 @@ const DEFAULT_SETTINGS: AppSettings = {
 export function loadSavedCourses(): Course[] {
   try {
     const raw = localStorage.getItem(KEYS.COURSES);
-    if (raw) {
+    if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
@@ -116,6 +116,38 @@ export async function syncCoursesToSupabase(courses: Course[], userId: string) {
     }
   } catch (e) {
     // Ignore error until tables are created
+  }
+}
+
+export async function deleteCourseFromSupabase(courseId: string, userId: string) {
+  if (!isSupabaseConfigured() || !supabase || !userId) return;
+  try {
+    const { error } = await supabase
+      .from('courses')
+      .delete()
+      .eq('id', courseId)
+      .eq('user_id', userId);
+    if (error && error.code === '42P01') {
+      console.info('Supabase table "courses" does not exist yet.');
+    }
+  } catch (e) {
+    console.warn('Delete course error:', e);
+  }
+}
+
+export async function deleteTranscriptsForCourseFromSupabase(courseId: string, userId: string) {
+  if (!isSupabaseConfigured() || !supabase || !userId) return;
+  try {
+    const { error } = await supabase
+      .from('transcripts')
+      .delete()
+      .eq('course_id', courseId)
+      .eq('user_id', userId);
+    if (error && error.code === '42P01') {
+      console.info('Supabase table "transcripts" does not exist yet.');
+    }
+  } catch (e) {
+    console.warn('Delete transcripts for course error:', e);
   }
 }
 

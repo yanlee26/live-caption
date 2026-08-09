@@ -250,7 +250,7 @@ export default function TranscriptView({
           borderTop: '1px solid var(--border-glass)',
           display: 'flex',
           alignItems: 'center',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px'
         }}>

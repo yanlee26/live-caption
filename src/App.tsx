@@ -16,8 +16,9 @@ import { streamingTranslationService } from './utils/streamingTranslationService
 import { calculateWeekNumber } from './utils/dateUtils';
 import { Calendar } from 'lucide-react';
 import { CSTerm, TranscriptSentence, Course } from './types';
+import { INITIAL_COURSES } from './data/courses';
 import {
-  loadSavedCourses, saveCourses, fetchCoursesFromSupabase,
+  loadSavedCourses, saveCourses, fetchCoursesFromSupabase, deleteCourseFromSupabase, deleteTranscriptsForCourseFromSupabase,
   loadActiveCourseId, saveActiveCourseId,
   loadSavedTranscripts, saveTranscripts, fetchTranscriptsFromSupabase,
   loadCustomGlossary, saveCustomGlossary, fetchGlossaryFromSupabase,
@@ -263,11 +264,23 @@ export default function App() {
       // Merge courses (remote + local)
       if (remoteCourses) {
         setCourses(prevLocal => {
-          const map = new Map<string, Course>();
-          remoteCourses.forEach(c => map.set(c.id, c));
-          prevLocal.forEach(c => {
-            if (!map.has(c.id)) map.set(c.id, c);
+          const localMap = new Map(prevLocal.map(c => [c.id, c]));
+          const remoteMap = new Map(remoteCourses.map(c => [c.id, c]));
+
+          remoteCourses.forEach(rc => {
+            if (!localMap.has(rc.id)) {
+              if (!rc.isCustom || INITIAL_COURSES.some(ic => ic.id === rc.id)) {
+                deleteCourseFromSupabase(rc.id, user.id);
+                deleteTranscriptsForCourseFromSupabase(rc.id, user.id);
+                remoteMap.delete(rc.id);
+              }
+            }
           });
+
+          const map = new Map<string, Course>();
+          remoteMap.forEach(c => map.set(c.id, c));
+          prevLocal.forEach(c => map.set(c.id, c));
+
           const merged = Array.from(map.values());
           saveCourses(merged, user.id);
           return merged;
@@ -622,6 +635,11 @@ export default function App() {
     });
 
     setTranscriptHistory(prev => prev.filter(t => t.courseId !== courseId));
+
+    if (user?.id) {
+      deleteCourseFromSupabase(courseId, user.id);
+      deleteTranscriptsForCourseFromSupabase(courseId, user.id);
+    }
   };
 
   // Bookmark Line Toggle
