@@ -257,7 +257,13 @@ export function deduplicateTranscripts(list: TranscriptSentence[]): TranscriptSe
         detectedTerms: (item.detectedTerms && item.detectedTerms.length >= (existing.detectedTerms?.length || 0))
           ? item.detectedTerms
           : existing.detectedTerms,
-        bookmarked: existing.bookmarked || item.bookmarked
+        bookmarked: existing.bookmarked || item.bookmarked,
+        courseId: item.courseId || existing.courseId,
+        weekNumber: item.weekNumber || existing.weekNumber,
+        date: item.date || existing.date,
+        userId: item.userId || existing.userId,
+        speaker: isNewBetter ? (item.speaker || existing.speaker) : (existing.speaker || item.speaker),
+        time: isNewBetter ? (item.time || existing.time) : (existing.time || item.time)
       };
     } else {
       result.push(item);
@@ -332,16 +338,22 @@ export async function fetchTranscriptsFromSupabase(userId: string): Promise<Tran
     }
     if (!data) return null;
 
-    return data.map(item => ({
-      id: item.id,
-      speaker: item.speaker || 'Speaker 1',
-      english: item.english,
-      chinese: item.chinese,
-      time: item.timestamp || 'Live',
-      bookmarked: item.bookmarked || false,
-      courseId: item.course_id || undefined,
-      userId: item.user_id
-    }));
+    return data.map(item => {
+      const createdAtDate = item.created_at ? new Date(item.created_at) : undefined;
+      const dateStr = item.date || (createdAtDate && !isNaN(createdAtDate.getTime()) ? createdAtDate.toISOString().split('T')[0] : undefined);
+      return {
+        id: item.id,
+        speaker: item.speaker || 'Speaker 1',
+        english: item.english,
+        chinese: item.chinese,
+        time: item.timestamp || 'Live',
+        bookmarked: item.bookmarked || false,
+        courseId: item.course_id || undefined,
+        userId: item.user_id,
+        date: dateStr,
+        weekNumber: item.week_number || item.weekNumber || undefined
+      };
+    });
   } catch (e) {
     return null;
   }
@@ -359,7 +371,9 @@ export async function syncTranscriptsToSupabase(transcripts: TranscriptSentence[
       english: t.english,
       chinese: t.chinese,
       timestamp: t.time,
-      bookmarked: Boolean(t.bookmarked)
+      bookmarked: Boolean(t.bookmarked),
+      date: t.date || null,
+      week_number: t.weekNumber || null
     }));
 
     if (rows.length > 0) {

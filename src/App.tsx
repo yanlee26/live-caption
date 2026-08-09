@@ -13,7 +13,7 @@ import AuthModal from './components/AuthModal';
 
 import { translateWithTermPreservation, fetchOnlineTranslation, matchCSTerms, autoExtractAndSaveTerms } from './utils/translationEngine';
 import { streamingTranslationService } from './utils/streamingTranslationService';
-import { calculateWeekNumber } from './utils/dateUtils';
+import { calculateWeekNumber, getItemWeek } from './utils/dateUtils';
 import { Calendar } from 'lucide-react';
 import { CSTerm, TranscriptSentence, Course } from './types';
 import { INITIAL_COURSES } from './data/courses';
@@ -128,6 +128,9 @@ export default function App() {
 
   // Session Control Handlers
   const handleStartSession = () => {
+    if (activeCourse) {
+      setSelectedWeekFilter(calculateWeekNumber(activeCourse.startDate));
+    }
     sessionStartTimeRef.current = Date.now();
     setSessionSeconds(0);
     handleStartListening();
@@ -198,6 +201,13 @@ export default function App() {
   useEffect(() => {
     translationParamsRef.current = { translationProvider, geminiApiKey, openAiApiKey, openAiModel, customGlossary };
   }, [translationProvider, geminiApiKey, openAiApiKey, openAiModel, customGlossary]);
+
+  const activeCourseRef = useRef<Course | null>(activeCourse);
+  activeCourseRef.current = activeCourse;
+
+  const userRef = useRef<any>(user);
+  userRef.current = user;
+
   useEffect(() => { saveCourses(courses, user?.id); }, [courses, user?.id]);
   useEffect(() => { if (activeCourse) saveActiveCourseId(activeCourse.id); }, [activeCourse]);
   useEffect(() => { saveTranscripts(transcriptHistory, user?.id); }, [transcriptHistory, user?.id]);
@@ -216,7 +226,8 @@ export default function App() {
     setSessionSeconds(0);
     sessionStartTimeRef.current = null;
     activeCaptionIdRef.current = null;
-    setSelectedWeekFilter('all');
+    const currentWeek = calculateWeekNumber(activeCourse.startDate);
+    setSelectedWeekFilter(currentWeek);
 
     const courseTranscripts = transcriptHistory.filter(t => t.courseId === activeCourse.id);
     if (courseTranscripts.length > 0) {
@@ -231,20 +242,27 @@ export default function App() {
         detectedTerms: matchCSTerms(`Selected ${activeCourse.code}: ${activeCourse.title}`, customGlossary),
         bookmarked: false,
         courseId: activeCourse.id,
-        userId: user?.id
+        userId: user?.id,
+        weekNumber: currentWeek
       };
       setCurrentCaption(defaultCourseCaption);
     }
   }, [activeCourse?.id]);
 
-  const [selectedWeekFilter, setSelectedWeekFilter] = useState<string>('all');
+  const [selectedWeekFilter, setSelectedWeekFilter] = useState<string>(() => {
+    return initialCourse ? calculateWeekNumber(initialCourse.startDate) : 'all';
+  });
 
   // Filter transcript history strictly by currently active course & selected week filter
   const activeCourseHistory = transcriptHistory
-    .filter(t => t.courseId === activeCourse?.id)
+    .filter(t => {
+      if (!activeCourse) return false;
+      if (t.courseId) return t.courseId === activeCourse.id;
+      return activeCourse.id === courses[0]?.id;
+    })
     .filter(t => {
       if (selectedWeekFilter === 'all') return true;
-      const itemWeek = t.weekNumber || calculateWeekNumber(activeCourse?.startDate, t.date ? new Date(t.date) : new Date());
+      const itemWeek = getItemWeek(t, activeCourse?.startDate);
       return itemWeek === selectedWeekFilter;
     });
 
@@ -401,9 +419,12 @@ export default function App() {
     // Completed segments are strictly previous chunks (excluding activeSegment)
     const completedSegments = segments.slice(0, -1);
 
+    const currentCourse = activeCourseRef.current;
+    const currentUser = userRef.current;
+
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
-    const currentWeek = calculateWeekNumber(activeCourse?.startDate, now);
+    const currentWeek = calculateWeekNumber(currentCourse?.startDate, now);
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     // Process previous completed segments if any
@@ -414,13 +435,13 @@ export default function App() {
         const captionObj: TranscriptSentence = {
           id: segId,
           time: timeStr,
-          speaker: activeCourse ? activeCourse.instructor : 'Live Professor',
+          speaker: currentCourse ? currentCourse.instructor : 'Live Professor',
           english: instantProcessed.original,
           chinese: instantProcessed.chinese,
           detectedTerms: instantProcessed.detectedTerms,
           bookmarked: false,
-          courseId: activeCourse?.id,
-          userId: user?.id,
+          courseId: currentCourse?.id,
+          userId: currentUser?.id,
           date: dateStr,
           weekNumber: currentWeek
         };
@@ -458,13 +479,13 @@ export default function App() {
       const activeCaptionObj: TranscriptSentence = {
         id: activeId,
         time: timeStr,
-        speaker: activeCourse ? activeCourse.instructor : 'Live Professor',
+        speaker: currentCourse ? currentCourse.instructor : 'Live Professor',
         english: instantProcessed.original,
         chinese: instantProcessed.chinese,
         detectedTerms: instantProcessed.detectedTerms,
         bookmarked: false,
-        courseId: activeCourse?.id,
-        userId: user?.id,
+        courseId: currentCourse?.id,
+        userId: currentUser?.id,
         date: dateStr,
         weekNumber: currentWeek
       };
@@ -497,7 +518,11 @@ export default function App() {
           const upgradedObj: TranscriptSentence = {
             ...activeCaptionObj,
             chinese: onlineResult.chinese,
-            detectedTerms: onlineResult.detectedTerms
+            detectedTerms: onlineResult.detectedTerms,
+            courseId: currentCourse?.id,
+            userId: currentUser?.id,
+            date: dateStr,
+            weekNumber: currentWeek
           };
 
           setCurrentCaption(upgradedObj);
@@ -617,6 +642,7 @@ export default function App() {
   // Course Handlers
   const handleSelectCourse = (course: Course) => {
     setActiveCourse(course);
+    setSelectedWeekFilter(calculateWeekNumber(course.startDate));
     setShowCourseSelectorModal(false);
   };
 
