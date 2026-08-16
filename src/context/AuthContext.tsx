@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { UserProfile } from '../types';
+import { syncUserToSupabase } from '../utils/storage';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -53,6 +54,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         localStorage.setItem(GOOGLE_USER_KEY, JSON.stringify(user));
       } catch (e) {}
+      syncUserToSupabase(user).catch(err => {
+        console.warn('Failed to sync user to Supabase:', err);
+      });
     } else {
       localStorage.removeItem(GOOGLE_USER_KEY);
     }
@@ -61,28 +65,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loginWithGoogleCredential = (credential: string) => {
     const payload = parseJwt(credential);
     if (payload) {
+      const userSub = payload.sub || payload.email?.trim().toLowerCase() || `${Date.now()}`;
+      const userEmail = payload.email?.trim().toLowerCase() || 'user@gmail.com';
       const googleProfile: UserProfile = {
-        id: `google-${payload.sub || Date.now()}`,
-        name: payload.name || payload.given_name || 'Google User',
-        email: payload.email || 'user@gmail.com',
-        picture: payload.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${payload.email}`,
+        id: `google-${userSub}`,
+        name: payload.name || payload.given_name || userEmail.split('@')[0],
+        email: userEmail,
+        picture: payload.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userEmail)}`,
         provider: 'google'
       };
       setUser(googleProfile);
+      syncUserToSupabase(googleProfile);
     }
   };
 
   const loginWithGoogleAccount = (email: string, name?: string) => {
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
     const displayName = name?.trim() || cleanEmail.split('@')[0];
     const googleProfile: UserProfile = {
-      id: `google-${Date.now()}`,
+      id: `google-${cleanEmail}`,
       name: displayName,
       email: cleanEmail,
       picture: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`,
       provider: 'google'
     };
     setUser(googleProfile);
+    syncUserToSupabase(googleProfile);
   };
 
   const logout = () => {

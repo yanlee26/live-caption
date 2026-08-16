@@ -1,4 +1,4 @@
-import { Course, CSTerm, TranscriptSentence, AcademicCategory } from '../types';
+import { Course, CSTerm, TranscriptSentence, AcademicCategory, UserProfile } from '../types';
 import { INITIAL_COURSES } from '../data/courses';
 import { DEFAULT_CS_GLOSSARY } from '../data/csGlossary';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -32,6 +32,60 @@ const DEFAULT_SETTINGS: AppSettings = {
   openAiApiKey: '',
   openAiModel: 'gpt-4o-mini'
 };
+
+// --- Users Storage & Sync ---
+export async function syncUserToSupabase(user: UserProfile) {
+  if (!isSupabaseConfigured() || !supabase || !user || !user.id) {
+    console.info('[Supabase Sync] Bypassed user sync: Supabase not configured or invalid user object.');
+    return;
+  }
+  try {
+    const row = {
+      id: user.id,
+      email: user.email,
+      name: user.name || '',
+      picture: user.picture || '',
+      provider: user.provider || 'google',
+      last_login_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase.from('users').upsert(row, { onConflict: 'id' }).select();
+    if (error) {
+      if (error.code === '42P01') {
+        console.warn('[Supabase Sync] Table "public.users" does not exist yet. Please execute supabase_schema.sql in Supabase SQL Editor.');
+      } else {
+        console.warn('[Supabase Sync] Failed to upsert user into public.users:', error.message, error);
+      }
+    } else {
+      console.log('[Supabase Sync] Successfully synced user profile to "public.users" table:', data || row);
+    }
+  } catch (e) {
+    console.warn('[Supabase Sync] Exception during syncUserToSupabase:', e);
+  }
+}
+
+export async function fetchUserFromSupabase(userId: string): Promise<UserProfile | null> {
+  if (!isSupabaseConfigured() || !supabase || !userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data) return null;
+
+    return {
+      id: data.id,
+      email: data.email,
+      name: data.name,
+      picture: data.picture,
+      provider: data.provider || 'google'
+    };
+  } catch (e) {
+    return null;
+  }
+}
 
 // --- Courses Storage ---
 export function loadSavedCourses(): Course[] {
