@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, LogOut, ShieldCheck } from 'lucide-react';
+import { X, LogOut } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,7 +12,6 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     user,
     isAuthenticated,
     loginWithGoogleCredential,
-    loginWithGoogleAccount,
     logout,
     hasValidGoogleClientId
   } = useAuth();
@@ -110,8 +109,8 @@ export default function AuthModal({ onClose }: AuthModalProps) {
         ) : (
           /* Sign-In Options (Shown ONLY when NOT logged in) */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {hasValidGoogleClientId && (
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+            {hasValidGoogleClientId ? (
+              <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <GoogleLogin
                   onSuccess={(credentialResponse) => {
                     if (credentialResponse.credential) {
@@ -128,76 +127,12 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   size="large"
                   text="continue_with"
                 />
-                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '4px' }}>
-                  If Google Popup shows <code>origin_mismatch</code>, add your local dev URL (e.g. <code>http://localhost:5173</code>) to Google Cloud Console Authorized JavaScript origins, or use Email Login below.
-                </p>
               </div>
+            ) : (
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                Google Client ID is not configured.
+              </p>
             )}
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              margin: '8px 0',
-              color: 'var(--text-muted)',
-              fontSize: '0.75rem'
-            }}>
-              <div style={{ flex: 1, height: '1px', background: 'var(--border-glow)' }} />
-              <span style={{ padding: '0 10px' }}>OR QUICK EMAIL LOGIN</span>
-              <div style={{ flex: 1, height: '1px', background: 'var(--border-glow)' }} />
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const form = e.target as HTMLFormElement;
-                const emailInput = form.elements.namedItem('email') as HTMLInputElement;
-                if (emailInput && emailInput.value.trim()) {
-                  loginWithGoogleAccount(emailInput.value.trim());
-                  onClose();
-                }
-              }}
-              style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
-            >
-              <input
-                type="email"
-                name="email"
-                placeholder="Enter your Gmail / Google email (e.g. franklyan24@gmail.com)"
-                defaultValue="franklyan24@gmail.com"
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-glow)',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.9rem',
-                  outline: 'none'
-                }}
-              />
-              <button
-                type="submit"
-                className="glass-card"
-                style={{
-                  width: '100%',
-                  padding: '12px 20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  color: '#ffffff',
-                  borderColor: 'rgba(66, 133, 244, 0.6)',
-                  background: 'linear-gradient(135deg, #4285F4 0%, #34A853 100%)',
-                  borderRadius: '12px'
-                }}
-              >
-                <ShieldCheck size={20} color="#ffffff" />
-                Sign in with Gmail / Student Account
-              </button>
-            </form>
           </div>
         )}
 
